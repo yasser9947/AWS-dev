@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 2 — EC2 Fundamentals</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-dark: #05050a;
+  --bg-card: #110a20;
+  --deep-purple: #30043f;
+  --deep-blue: #0c2643;
+  --accent-amber: #f59e0b;
+  --accent-cyan: #22d3ee;
+  --accent-green: #34d399;
+  --accent-rose: #fb7185;
+  --accent-violet: #a78bfa;
+  --accent-orange: #fb923c;
+  --text-primary: #f0f0f5;
+  --text-muted: #8888aa;
+  --glow-amber: 0 0 40px rgba(245, 158, 11, 0.25);
+  --glow-cyan: 0 0 40px rgba(34, 211, 238, 0.25);
+  --glow-green: 0 0 40px rgba(52, 211, 153, 0.25);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 50px 70px;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.slide.active { opacity: 1; transform: translateY(0); pointer-events: all; }
+
+.slide::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 500px 400px at 10% 15%, rgba(48, 4, 63, 0.4) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 400px at 90% 85%, rgba(12, 38, 67, 0.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.slide::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+}
+
+.slide-content { position: relative; z-index: 2; width: 100%; max-width: 1100px; }
+
+.slide-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent-cyan);
+  margin-bottom: 16px;
+}
+
+.slide h2 { font-size: 44px; font-weight: 800; margin-bottom: 36px; line-height: 1.15; }
+
+/* Title slide */
+.title-slide .week-badge {
+  display: inline-block;
+  padding: 8px 22px;
+  border: 1px solid var(--accent-cyan);
+  border-radius: 100px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--accent-cyan);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 36px;
+  animation: fadeInDown 0.8s ease 0.2s both;
+}
+
+.title-slide h1 {
+  font-size: 68px;
+  font-weight: 900;
+  line-height: 1.08;
+  margin-bottom: 20px;
+  animation: fadeInDown 0.8s ease 0.4s both;
+}
+
+.title-slide h1 .hl-cyan { color: var(--accent-cyan); text-shadow: var(--glow-cyan); }
+.title-slide h1 .hl-amber { color: var(--accent-amber); text-shadow: var(--glow-amber); }
+
+.title-slide .subtitle {
+  font-size: 20px;
+  color: var(--text-muted);
+  font-weight: 300;
+  line-height: 1.6;
+  max-width: 650px;
+  animation: fadeInDown 0.8s ease 0.6s both;
+}
+
+.title-slide .topics {
+  display: flex;
+  gap: 16px;
+  margin-top: 40px;
+  animation: fadeInDown 0.8s ease 0.8s both;
+}
+
+.topic-pill {
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pill-cyan { background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.3); color: var(--accent-cyan); }
+.pill-amber { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--accent-amber); }
+.pill-green { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.3); color: var(--accent-green); }
+
+/* Cards */
+.card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.card-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.card-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 26px 24px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.12); }
+
+.card-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+
+.card h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+.card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+.highlight-box {
+  padding: 14px 20px;
+  border-radius: 12px;
+  border-left: 3px solid;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.highlight-box strong { color: var(--text-primary); }
+
+.code-block {
+  background: #08080f;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 24px 28px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.9;
+  position: relative;
+}
+
+.code-header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 8px 18px;
+  background: rgba(255,255,255,0.03);
+  font-size: 11px;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.code-body { margin-top: 20px; }
+.c-key { color: var(--accent-cyan); }
+.c-str { color: var(--accent-green); }
+.c-comment { color: #444466; }
+.c-val { color: var(--accent-amber); }
+.c-rose { color: var(--accent-rose); }
+
+/* Instance type table */
+.type-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  gap: 14px;
+  transition: all 0.3s ease;
+}
+
+.type-row:hover { transform: translateX(4px); }
+
+.type-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 6px;
+  min-width: 60px;
+  text-align: center;
+}
+
+.type-desc { font-size: 13px; color: var(--text-muted); }
+.type-use { font-size: 12px; color: var(--text-muted); opacity: 0.7; }
+
+/* Diagram */
+.diagram-box {
+  padding: 16px 28px;
+  border-radius: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.diagram-box:hover { transform: scale(1.05); }
+
+.diagram-box .box-desc {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.flow-arrow { color: var(--text-muted); font-size: 20px; animation: pulseArrow 2s ease infinite; }
+
+@keyframes pulseArrow { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* Nav */
+.nav-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(17, 10, 32, 0.92);
+  backdrop-filter: blur(20px);
+  padding: 10px 22px;
+  border-radius: 100px;
+  border: 1px solid rgba(255,255,255,0.07);
+  z-index: 100;
+}
+
+.nav-dots { display: flex; gap: 7px; }
+
+.nav-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-dot.active {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.5);
+  width: 26px;
+  border-radius: 10px;
+}
+
+.nav-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-primary);
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.nav-btn:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+.slide-counter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 48px;
+  text-align: center;
+}
+
+/* Back link */
+.back-link {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+  z-index: 100;
+  padding: 8px 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.back-link:hover { color: var(--accent-cyan); border-color: var(--accent-cyan); }
+
+/* Animations */
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.slide.active .anim { animation: fadeInUp 0.5s ease both; }
+.slide.active .d1 { animation-delay: 0.1s; }
+.slide.active .d2 { animation-delay: 0.2s; }
+.slide.active .d3 { animation-delay: 0.3s; }
+.slide.active .d4 { animation-delay: 0.4s; }
+.slide.active .d5 { animation-delay: 0.5s; }
+.slide.active .d6 { animation-delay: 0.6s; }
+.slide.active .d7 { animation-delay: 0.7s; }
+
+.particle {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  animation: floatUp linear infinite;
+}
+
+@keyframes floatUp {
+  0% { transform: translateY(100vh); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-100vh); opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<div id="particles"></div>
+<a href="index.html" class="back-link">&larr; All Weeks</a>
+
+<!-- SLIDE 1: Title -->
+<div class="slide active title-slide" data-slide="0">
+  <div class="slide-content">
+    <div class="week-badge">AWS Developer Associate — Week 2</div>
+    <h1>
+      <span class="hl-cyan">EC2</span><br>
+      <span class="hl-amber">Fundamentals</span>
+    </h1>
+    <p class="subtitle">
+      Elastic Compute Cloud — virtual servers in the cloud.
+      The backbone of most AWS architectures.
+    </p>
+    <div class="topics">
+      <span class="topic-pill pill-cyan">Instance Types</span>
+      <span class="topic-pill pill-amber">Security Groups</span>
+      <span class="topic-pill pill-green">Instance Storage</span>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 2: What is EC2 -->
+<div class="slide" data-slide="1">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Understanding EC2</div>
+    <h2 class="anim d2">What is EC2?</h2>
+    <div class="card-grid-2">
+      <div class="card anim d3" style="grid-column: 1 / -1;">
+        <h3 style="color: var(--accent-cyan); font-size: 20px;">Elastic Compute Cloud</h3>
+        <p style="font-size: 16px; margin-top: 8px;">
+          EC2 gives you <strong style="color: var(--text-primary);">virtual servers</strong> (called instances) that you can start, stop, and scale on demand.
+          Instead of buying physical hardware, you rent computing power by the second.
+        </p>
+        <div class="highlight-box anim d4" style="border-color: var(--accent-cyan); background: rgba(34, 211, 238, 0.04); margin-top: 20px;">
+          <strong>Key Concept:</strong> EC2 is IaaS (Infrastructure as a Service). You control the OS, the software, the networking.
+          AWS handles the physical hardware underneath.
+        </div>
+      </div>
+      <div class="card anim d5">
+        <div class="card-accent" style="background: var(--accent-amber);"></div>
+        <h3 style="color: var(--accent-amber);">What You Choose</h3>
+        <p>
+          <strong style="color: var(--text-primary);">OS</strong> — Linux, Windows, macOS<br><br>
+          <strong style="color: var(--text-primary);">Size</strong> — CPU, RAM, Storage<br><br>
+          <strong style="color: var(--text-primary);">Network</strong> — Speed, public IP, placement
+        </p>
+      </div>
+      <div class="card anim d6">
+        <div class="card-accent" style="background: var(--accent-green);"></div>
+        <h3 style="color: var(--accent-green);">What AWS Handles</h3>
+        <p>
+          <strong style="color: var(--text-primary);">Hardware</strong> — servers, racks, cooling<br><br>
+          <strong style="color: var(--text-primary);">Hypervisor</strong> — Nitro System<br><br>
+          <strong style="color: var(--text-primary);">Physical Security</strong> — data centers
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: Instance Types -->
+<div class="slide" data-slide="2">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Instance Types</div>
+    <h2 class="anim d2">Choosing the Right Instance</h2>
+    <div class="card-grid-2" style="gap: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="type-row anim d3" style="background: rgba(34, 211, 238, 0.06);">
+          <span class="type-badge" style="background: rgba(34,211,238,0.15); color: var(--accent-cyan);">T / M</span>
+          <div>
+            <div style="color: var(--accent-cyan); font-weight: 700; font-size: 15px;">General Purpose</div>
+            <div class="type-desc">Balanced CPU, memory, and networking</div>
+            <div class="type-use">Web servers, code repos, small databases</div>
+          </div>
+        </div>
+        <div class="type-row anim d4" style="background: rgba(245, 158, 11, 0.06);">
+          <span class="type-badge" style="background: rgba(245,158,11,0.15); color: var(--accent-amber);">C</span>
+          <div>
+            <div style="color: var(--accent-amber); font-weight: 700; font-size: 15px;">Compute Optimized</div>
+            <div class="type-desc">High-performance processors</div>
+            <div class="type-use">Batch processing, ML, gaming servers</div>
+          </div>
+        </div>
+        <div class="type-row anim d5" style="background: rgba(52, 211, 153, 0.06);">
+          <span class="type-badge" style="background: rgba(52,211,153,0.15); color: var(--accent-green);">R / X</span>
+          <div>
+            <div style="color: var(--accent-green); font-weight: 700; font-size: 15px;">Memory Optimized</div>
+            <div class="type-desc">Fast performance for large datasets in memory</div>
+            <div class="type-use">In-memory caches, real-time big data</div>
+          </div>
+        </div>
+        <div class="type-row anim d6" style="background: rgba(167, 139, 250, 0.06);">
+          <span class="type-badge" style="background: rgba(167,139,250,0.15); color: var(--accent-violet);">I / D</span>
+          <div>
+            <div style="color: var(--accent-violet); font-weight: 700; font-size: 15px;">Storage Optimized</div>
+            <div class="type-desc">High sequential read/write to local storage</div>
+            <div class="type-use">Data warehousing, distributed file systems</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="code-block anim d4">
+          <div class="code-header">Naming Convention</div>
+          <div class="code-body">
+<pre><span class="c-comment"># Example: m5.2xlarge</span>
+
+<span class="c-key">m</span>    → <span class="c-str">Instance family</span> (General Purpose)
+<span class="c-key">5</span>    → <span class="c-str">Generation</span> (newer = better)
+<span class="c-key">2xlarge</span> → <span class="c-str">Size</span> (CPU + RAM)
+
+<span class="c-comment"># Sizes (small → large):</span>
+<span class="c-val">nano → micro → small → medium</span>
+<span class="c-val">→ large → xlarge → 2xlarge → ...</span>
+
+<span class="c-comment"># Common for dev:</span>
+<span class="c-key">t2.micro</span> → <span class="c-str">Free Tier eligible</span>
+<span class="c-key">t3.small</span> → <span class="c-str">Good for small apps</span></pre>
+          </div>
+        </div>
+        <div class="highlight-box anim d6" style="border-color: var(--accent-amber); background: rgba(245,158,11,0.04); margin-top: 14px;">
+          <strong>Exam Tip:</strong> t2.micro is Free Tier eligible (750 hours/month). Know the family letters and what they optimize for.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 4: Security Groups -->
+<div class="slide" data-slide="3">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Network Security</div>
+    <h2 class="anim d2">Security Groups</h2>
+    <div class="card-grid-2" style="gap: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="card anim d3">
+          <h3 style="color: var(--accent-rose);">What Are They?</h3>
+          <p>Security Groups are <strong style="color: var(--text-primary);">virtual firewalls</strong> for your EC2 instances. They control what traffic can come in (inbound) and go out (outbound).</p>
+          <div class="highlight-box" style="border-color: var(--accent-rose); background: rgba(251,113,133,0.04); margin-top: 12px;">
+            They only contain <strong>ALLOW</strong> rules. You cannot write a DENY rule in a Security Group.
+          </div>
+        </div>
+        <div class="card anim d5">
+          <h3 style="color: var(--accent-cyan);">Key Behaviors</h3>
+          <p>
+            <strong style="color: var(--text-primary);">Stateful</strong> — if traffic is allowed in, the response is automatically allowed out<br><br>
+            <strong style="color: var(--text-primary);">Default</strong> — all inbound blocked, all outbound allowed<br><br>
+            <strong style="color: var(--text-primary);">Multiple</strong> — one instance can have multiple SGs, one SG can be on multiple instances
+          </p>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="code-block anim d4">
+          <div class="code-header">Security Group Rules Example</div>
+          <div class="code-body">
+<pre><span class="c-comment"># Inbound Rules (who can reach us)</span>
+
+<span class="c-key">Type</span>        <span class="c-key">Port</span>   <span class="c-key">Source</span>
+<span class="c-str">SSH</span>         <span class="c-val">22</span>     <span class="c-str">My IP only</span>
+<span class="c-str">HTTP</span>        <span class="c-val">80</span>     <span class="c-str">0.0.0.0/0</span> (everyone)
+<span class="c-str">HTTPS</span>       <span class="c-val">443</span>    <span class="c-str">0.0.0.0/0</span> (everyone)
+<span class="c-str">Custom</span>      <span class="c-val">8080</span>   <span class="c-str">sg-xxxxx</span> (another SG)
+
+<span class="c-comment"># Outbound Rules (where we can go)</span>
+
+<span class="c-key">Type</span>        <span class="c-key">Port</span>   <span class="c-key">Destination</span>
+<span class="c-str">All traffic</span> <span class="c-val">All</span>    <span class="c-str">0.0.0.0/0</span> (default)</pre>
+          </div>
+        </div>
+        <div class="highlight-box anim d6" style="border-color: var(--accent-amber); background: rgba(245,158,11,0.04);">
+          <strong>Exam Tip:</strong> If your app has a timeout error — it's a Security Group issue. If you get a "connection refused" — the app itself has a problem.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 5: SG Referencing -->
+<div class="slide" data-slide="4">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Advanced Feature</div>
+    <h2 class="anim d2">SG Referencing Other SGs</h2>
+    <div class="card anim d3" style="grid-column: 1 / -1; margin-bottom: 24px;">
+      <h3 style="color: var(--accent-violet); font-size: 18px;">Instead of allowing specific IPs, you can allow another Security Group</h3>
+      <p style="font-size: 15px; margin-top: 8px;">
+        This means: "any instance that has SG-B attached can talk to instances with SG-A". 
+        No need to manage IP addresses. Instances can change IPs and it still works.
+      </p>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 30px;" class="anim d4">
+      <div class="diagram-box" style="background: rgba(34,211,238,0.08); border: 2px solid var(--accent-cyan); color: var(--accent-cyan); min-width: 180px;">
+        EC2 Instance A
+        <div class="box-desc">SG-Web (port 80)</div>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <div class="flow-arrow">&larr;</div>
+        <div style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">allows SG-App</div>
+      </div>
+      <div class="diagram-box" style="background: rgba(52,211,153,0.08); border: 2px solid var(--accent-green); color: var(--accent-green); min-width: 180px;">
+        EC2 Instance B
+        <div class="box-desc">SG-App (port 8080)</div>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <div class="flow-arrow">&larr;</div>
+        <div style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">allows SG-DB</div>
+      </div>
+      <div class="diagram-box" style="background: rgba(167,139,250,0.08); border: 2px solid var(--accent-violet); color: var(--accent-violet); min-width: 180px;">
+        RDS Database
+        <div class="box-desc">SG-DB (port 3306)</div>
+      </div>
+    </div>
+    <div class="highlight-box anim d5" style="border-color: var(--accent-green); background: rgba(52,211,153,0.04); margin-top: 30px; max-width: 800px; margin-left: auto; margin-right: auto;">
+      <strong>Real Example:</strong> Your web server (SG-Web) allows traffic from anyone on port 80. Your app server (SG-App) only allows traffic from SG-Web. Your database (SG-DB) only allows traffic from SG-App. This creates a secure chain — the internet can never reach your database directly.
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 6: SSH & Connecting -->
+<div class="slide" data-slide="5">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Connecting</div>
+    <h2 class="anim d2">How to Access Your Instance</h2>
+    <div class="card-grid-3">
+      <div class="card anim d3">
+        <div class="card-accent" style="background: var(--accent-cyan);"></div>
+        <h3 style="color: var(--accent-cyan);">SSH (Linux/Mac)</h3>
+        <p>The classic way. Use your terminal with a .pem key file.</p>
+        <div class="code-block" style="margin-top: 14px; padding: 14px 16px; font-size: 11px;">
+<pre><span class="c-val">$</span> ssh -i key.pem \
+  ec2-user@<span class="c-str">public-ip</span></pre>
+        </div>
+        <div class="highlight-box" style="border-color: var(--accent-cyan); background: rgba(34,211,238,0.04); font-size: 12px;">
+          Make sure port <strong>22</strong> is open in your Security Group
+        </div>
+      </div>
+      <div class="card anim d4">
+        <div class="card-accent" style="background: var(--accent-amber);"></div>
+        <h3 style="color: var(--accent-amber);">EC2 Instance Connect</h3>
+        <p>Browser-based SSH. No keys needed. Works directly from the AWS Console.</p>
+        <div class="highlight-box" style="border-color: var(--accent-amber); background: rgba(245,158,11,0.04); margin-top: 14px; font-size: 12px;">
+          Still needs port <strong>22</strong> open, but AWS manages the temporary key for you
+        </div>
+      </div>
+      <div class="card anim d5">
+        <div class="card-accent" style="background: var(--accent-green);"></div>
+        <h3 style="color: var(--accent-green);">Session Manager (SSM)</h3>
+        <p>No SSH, no port 22, no key files. Connects through AWS Systems Manager.</p>
+        <div class="highlight-box" style="border-color: var(--accent-green); background: rgba(52,211,153,0.04); margin-top: 14px; font-size: 12px;">
+          <strong>Most secure option.</strong> No inbound ports needed. Requires IAM Role with SSM permissions.
+        </div>
+      </div>
+    </div>
+    <div class="highlight-box anim d6" style="border-color: var(--accent-rose); background: rgba(251,113,133,0.04); margin-top: 20px;">
+      <strong>Important:</strong> Never use port 22 with source 0.0.0.0/0 in production. This opens SSH to the entire internet.
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 7: Purchasing Options -->
+<div class="slide" data-slide="6">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Pricing</div>
+    <h2 class="anim d2">EC2 Purchasing Options</h2>
+    <div class="card-grid-2" style="gap: 16px;">
+      <div class="card anim d3">
+        <div class="card-accent" style="background: var(--accent-cyan);"></div>
+        <h3 style="color: var(--accent-cyan);">On-Demand</h3>
+        <p>Pay by the second. No commitment. Highest price but most flexible.</p>
+        <div class="highlight-box" style="border-color: var(--accent-cyan); background: rgba(34,211,238,0.04); font-size: 12px;">
+          <strong>Use for:</strong> Short workloads, unpredictable traffic, testing
+        </div>
+      </div>
+      <div class="card anim d4">
+        <div class="card-accent" style="background: var(--accent-green);"></div>
+        <h3 style="color: var(--accent-green);">Reserved (1 or 3 years)</h3>
+        <p>Up to 72% discount. You commit to a specific instance type in a specific region.</p>
+        <div class="highlight-box" style="border-color: var(--accent-green); background: rgba(52,211,153,0.04); font-size: 12px;">
+          <strong>Use for:</strong> Steady-state apps, databases, predictable usage
+        </div>
+      </div>
+      <div class="card anim d5">
+        <div class="card-accent" style="background: var(--accent-amber);"></div>
+        <h3 style="color: var(--accent-amber);">Spot Instances</h3>
+        <p>Up to 90% discount. But AWS can take it back with 2 min warning if they need the capacity.</p>
+        <div class="highlight-box" style="border-color: var(--accent-rose); background: rgba(251,113,133,0.04); font-size: 12px;">
+          <strong>Use for:</strong> Batch jobs, data analysis, workloads that can handle interruption
+        </div>
+      </div>
+      <div class="card anim d6">
+        <div class="card-accent" style="background: var(--accent-violet);"></div>
+        <h3 style="color: var(--accent-violet);">Dedicated Hosts</h3>
+        <p>A physical server only for you. Most expensive. For compliance or licensing requirements.</p>
+        <div class="highlight-box" style="border-color: var(--accent-violet); background: rgba(167,139,250,0.04); font-size: 12px;">
+          <strong>Use for:</strong> Regulatory requirements, server-bound software licenses
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 8: Instance Storage -->
+<div class="slide" data-slide="7">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Storage</div>
+    <h2 class="anim d2">EC2 Instance Storage</h2>
+    <div class="card-grid-3" style="gap: 20px;">
+      <div class="card anim d3">
+        <div class="card-accent" style="background: var(--accent-cyan);"></div>
+        <h3 style="color: var(--accent-cyan);">EBS (Elastic Block Store)</h3>
+        <p style="margin-bottom: 12px;">Network-attached storage. Like a USB drive you can plug into any instance.</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="padding: 8px 14px; background: rgba(34,211,238,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Persists after instance stops/terminates (if configured)</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(34,211,238,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Locked to one Availability Zone</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(34,211,238,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Can be detached and attached to another instance</span>
+          </div>
+        </div>
+      </div>
+      <div class="card anim d4">
+        <div class="card-accent" style="background: var(--accent-amber);"></div>
+        <h3 style="color: var(--accent-amber);">Instance Store</h3>
+        <p style="margin-bottom: 12px;">Physical disk attached to the server. Extremely fast but temporary.</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="padding: 8px 14px; background: rgba(245,158,11,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Best I/O performance</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(251,113,133,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--accent-rose);">Data LOST when instance stops or terminates</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(245,158,11,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Good for caches, buffers, temp data</span>
+          </div>
+        </div>
+      </div>
+      <div class="card anim d5">
+        <div class="card-accent" style="background: var(--accent-green);"></div>
+        <h3 style="color: var(--accent-green);">EBS Snapshots</h3>
+        <p style="margin-bottom: 12px;">Backup of your EBS volume at a point in time. Can copy across AZs and regions.</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="padding: 8px 14px; background: rgba(52,211,153,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Create new volumes from snapshots</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(52,211,153,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Move data between AZs using snapshots</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(52,211,153,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Snapshot Archive: 75% cheaper, 24-72h to restore</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 9: EBS Volume Types -->
+<div class="slide" data-slide="8">
+  <div class="slide-content">
+    <div class="slide-label anim d1">EBS Deep Dive</div>
+    <h2 class="anim d2">EBS Volume Types</h2>
+    <div class="card-grid-4" style="gap: 14px;">
+      <div class="card anim d3">
+        <div class="card-accent" style="background: var(--accent-cyan);"></div>
+        <h3 style="color: var(--accent-cyan); font-size: 15px;">gp3 / gp2</h3>
+        <p style="font-size: 13px;">General Purpose SSD. Balances price and performance.</p>
+        <div class="highlight-box" style="border-color: var(--accent-cyan); background: rgba(34,211,238,0.04); font-size: 11px; padding: 10px 14px;">
+          <strong>gp3:</strong> 3,000 IOPS baseline, up to 16,000<br>
+          <strong>gp2:</strong> IOPS scales with size (3 IOPS/GB)
+        </div>
+      </div>
+      <div class="card anim d4">
+        <div class="card-accent" style="background: var(--accent-amber);"></div>
+        <h3 style="color: var(--accent-amber); font-size: 15px;">io1 / io2</h3>
+        <p style="font-size: 13px;">Provisioned IOPS SSD. Highest performance for critical workloads.</p>
+        <div class="highlight-box" style="border-color: var(--accent-amber); background: rgba(245,158,11,0.04); font-size: 11px; padding: 10px 14px;">
+          Up to 64,000 IOPS. Supports <strong>EBS Multi-Attach</strong> (multiple EC2s).
+        </div>
+      </div>
+      <div class="card anim d5">
+        <div class="card-accent" style="background: var(--accent-green);"></div>
+        <h3 style="color: var(--accent-green); font-size: 15px;">st1</h3>
+        <p style="font-size: 13px;">Throughput Optimized HDD. Low cost for frequently accessed data.</p>
+        <div class="highlight-box" style="border-color: var(--accent-green); background: rgba(52,211,153,0.04); font-size: 11px; padding: 10px 14px;">
+          Big data, data warehouses, log processing. <strong>Cannot be boot volume.</strong>
+        </div>
+      </div>
+      <div class="card anim d6">
+        <div class="card-accent" style="background: var(--accent-violet);"></div>
+        <h3 style="color: var(--accent-violet); font-size: 15px;">sc1</h3>
+        <p style="font-size: 13px;">Cold HDD. Lowest cost. For infrequently accessed data.</p>
+        <div class="highlight-box" style="border-color: var(--accent-violet); background: rgba(167,139,250,0.04); font-size: 11px; padding: 10px 14px;">
+          Archive storage, lowest cost. <strong>Cannot be boot volume.</strong>
+        </div>
+      </div>
+    </div>
+    <div class="highlight-box anim d7" style="border-color: var(--accent-rose); background: rgba(251,113,133,0.04); margin-top: 20px;">
+      <strong>Exam Tip:</strong> Only <strong>gp2/gp3</strong> and <strong>io1/io2</strong> can be used as boot volumes. HDD types (st1, sc1) cannot boot an instance.
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 10: AMI -->
+<div class="slide" data-slide="9">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Machine Images</div>
+    <h2 class="anim d2">AMI — Amazon Machine Image</h2>
+    <div class="card-grid-2" style="gap: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="card anim d3">
+          <h3 style="color: var(--accent-orange);">What is an AMI?</h3>
+          <p>A template for your EC2 instance. It captures the OS, software, configuration — everything. Launch 100 identical instances from one AMI.</p>
+        </div>
+        <div class="card anim d4">
+          <h3 style="color: var(--accent-cyan);">Three Sources</h3>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+            <div style="padding: 10px 14px; background: rgba(34,211,238,0.06); border-radius: 10px; font-size: 13px;">
+              <strong style="color: var(--accent-cyan);">AWS Provided</strong> <span style="color: var(--text-muted);">— Amazon Linux, Ubuntu, Windows</span>
+            </div>
+            <div style="padding: 10px 14px; background: rgba(245,158,11,0.06); border-radius: 10px; font-size: 13px;">
+              <strong style="color: var(--accent-amber);">Marketplace</strong> <span style="color: var(--text-muted);">— Third-party pre-configured AMIs</span>
+            </div>
+            <div style="padding: 10px 14px; background: rgba(52,211,153,0.06); border-radius: 10px; font-size: 13px;">
+              <strong style="color: var(--accent-green);">Custom</strong> <span style="color: var(--text-muted);">— You build your own from an instance</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;" class="anim d5">
+        <div class="diagram-box" style="background: rgba(34,211,238,0.08); border: 2px solid var(--accent-cyan); color: var(--accent-cyan); min-width: 220px;">
+          EC2 Instance
+          <div class="box-desc">Customize: install apps, configure</div>
+        </div>
+        <div class="flow-arrow">|</div>
+        <div style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">create image</div>
+        <div class="flow-arrow">v</div>
+        <div class="diagram-box" style="background: rgba(245,158,11,0.08); border: 2px solid var(--accent-amber); color: var(--accent-amber); min-width: 220px;">
+          AMI
+          <div class="box-desc">Saved template (region-specific)</div>
+        </div>
+        <div class="flow-arrow">|</div>
+        <div style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">launch from AMI</div>
+        <div class="flow-arrow">v</div>
+        <div style="display: flex; gap: 12px;">
+          <div class="diagram-box" style="background: rgba(52,211,153,0.08); border: 2px solid var(--accent-green); color: var(--accent-green); padding: 12px 18px; font-size: 12px;">Instance 1</div>
+          <div class="diagram-box" style="background: rgba(52,211,153,0.08); border: 2px solid var(--accent-green); color: var(--accent-green); padding: 12px 18px; font-size: 12px;">Instance 2</div>
+          <div class="diagram-box" style="background: rgba(52,211,153,0.08); border: 2px solid var(--accent-green); color: var(--accent-green); padding: 12px 18px; font-size: 12px;">Instance 3</div>
+        </div>
+      </div>
+    </div>
+    <div class="highlight-box anim d6" style="border-color: var(--accent-amber); background: rgba(245,158,11,0.04); margin-top: 16px;">
+      <strong>Key Point:</strong> AMIs are <strong>region-specific</strong>. To use an AMI in another region, you must copy it first.
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 11: Exam Tips -->
+<div class="slide" data-slide="10">
+  <div class="slide-content" style="text-align: center;">
+    <div class="slide-label anim d1">Key Takeaways</div>
+    <h2 class="anim d2" style="font-size: 48px;">
+      Remember These for the<br>
+      <span style="color: var(--accent-cyan);">Exam</span>
+    </h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 900px; margin: 28px auto 0; text-align: left;">
+      <div class="card anim d3">
+        <h3 style="color: var(--accent-cyan); font-size: 15px;">Security Groups = Stateful</h3>
+        <p style="font-size: 13px;">Allow rules only. Return traffic is automatic. Timeout = SG issue, Connection refused = app issue.</p>
+      </div>
+      <div class="card anim d3">
+        <h3 style="color: var(--accent-amber); font-size: 15px;">EBS is AZ-Locked</h3>
+        <p style="font-size: 13px;">To move an EBS volume, snapshot it first, then create a new volume in the target AZ.</p>
+      </div>
+      <div class="card anim d4">
+        <h3 style="color: var(--accent-green); font-size: 15px;">Instance Store = Ephemeral</h3>
+        <p style="font-size: 13px;">Highest performance but data is lost on stop/terminate. Good for caches only.</p>
+      </div>
+      <div class="card anim d4">
+        <h3 style="color: var(--accent-violet); font-size: 15px;">Only SSD Can Boot</h3>
+        <p style="font-size: 13px;">gp2, gp3, io1, io2 can be boot volumes. st1 and sc1 (HDD) cannot.</p>
+      </div>
+      <div class="card anim d5">
+        <h3 style="color: var(--accent-rose); font-size: 15px;">Spot = Cheapest, Can Be Taken</h3>
+        <p style="font-size: 13px;">Up to 90% off. 2-minute warning before termination. Only for fault-tolerant workloads.</p>
+      </div>
+      <div class="card anim d5">
+        <h3 style="color: var(--accent-orange); font-size: 15px;">AMI = Region-Specific</h3>
+        <p style="font-size: 13px;">Must copy to use in another region. Custom AMIs speed up boot time significantly.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Navigation -->
+<div class="nav-bar">
+  <button class="nav-btn" id="prevBtn">&#8249;</button>
+  <div class="nav-dots" id="navDots"></div>
+  <span class="slide-counter" id="slideCounter">1 / 11</span>
+  <button class="nav-btn" id="nextBtn">&#8250;</button>
+</div>
+
+<script>
+const pc = document.getElementById('particles');
+const colors = ['#30043f', '#0c2643', '#22d3ee', '#f59e0b', '#34d399'];
+for (let i = 0; i < 18; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.left = Math.random() * 100 + '%';
+  p.style.background = colors[Math.floor(Math.random() * colors.length)];
+  p.style.animationDuration = (18 + Math.random() * 28) + 's';
+  p.style.animationDelay = (Math.random() * 20) + 's';
+  p.style.opacity = 0.25 + Math.random() * 0.35;
+  const size = (2 + Math.random() * 4) + 'px';
+  p.style.width = size;
+  p.style.height = size;
+  pc.appendChild(p);
+}
+
+const slides = document.querySelectorAll('.slide');
+const navDots = document.getElementById('navDots');
+const slideCounter = document.getElementById('slideCounter');
+let current = 0;
+
+slides.forEach((_, i) => {
+  const dot = document.createElement('div');
+  dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+  dot.addEventListener('click', () => goTo(i));
+  navDots.appendChild(dot);
+});
+
+function goTo(index) {
+  if (index < 0 || index >= slides.length) return;
+  slides[current].classList.remove('active');
+  navDots.children[current].classList.remove('active');
+  current = index;
+  slides[current].classList.add('active');
+  navDots.children[current].classList.add('active');
+  slideCounter.textContent = `${current + 1} / ${slides.length}`;
+}
+
+document.getElementById('prevBtn').addEventListener('click', () => goTo(current - 1));
+document.getElementById('nextBtn').addEventListener('click', () => goTo(current + 1));
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+});
+
+let touchStart = 0;
+document.addEventListener('touchstart', (e) => touchStart = e.touches[0].clientX);
+document.addEventListener('touchend', (e) => {
+  const diff = touchStart - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 50) diff > 0 ? goTo(current + 1) : goTo(current - 1);
+});
+</script>
+</body>
+</html>

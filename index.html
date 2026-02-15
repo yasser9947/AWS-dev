@@ -1,1078 +1,605 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Week 1 — IAM & AWS CLI</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg-dark: #05050a;
-  --bg-card: #110a20;
-  --deep-purple: #30043f;
-  --deep-blue: #0c2643;
-  --accent-amber: #f59e0b;
-  --accent-cyan: #22d3ee;
-  --accent-green: #34d399;
-  --accent-rose: #fb7185;
-  --accent-violet: #a78bfa;
-  --accent-orange: #fb923c;
-  --text-primary: #f0f0f5;
-  --text-muted: #8888aa;
-  --glow-amber: 0 0 40px rgba(245, 158, 11, 0.25);
-  --glow-cyan: 0 0 40px rgba(34, 211, 238, 0.25);
-  --glow-green: 0 0 40px rgba(52, 211, 153, 0.25);
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Developer Associate — Study Plan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #05050a;
+            --bg-card: #110a20;
+            --deep-purple: #30043f;
+            --deep-blue: #0c2643;
+            --accent-amber: #f59e0b;
+            --accent-cyan: #22d3ee;
+            --accent-green: #34d399;
+            --accent-rose: #fb7185;
+            --accent-violet: #a78bfa;
+            --accent-orange: #fb923c;
+            --text-primary: #f0f0f5;
+            --text-muted: #8888aa;
+        }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-body {
-  font-family: 'Outfit', sans-serif;
-  background: var(--bg-dark);
-  color: var(--text-primary);
-  overflow: hidden;
-  height: 100vh;
-  width: 100vw;
-}
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-/* ===== Slide System ===== */
-.slide {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 50px 70px;
-  opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-  pointer-events: none;
-  overflow: hidden;
-}
+        /* Background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                    radial-gradient(ellipse 600px 400px at 10% 10%, rgba(48, 4, 63, 0.35) 0%, transparent 70%),
+                    radial-gradient(ellipse 500px 500px at 90% 90%, rgba(12, 38, 67, 0.3) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
 
-.slide.active {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: all;
-}
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                    linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
 
-.slide::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 500px 400px at 10% 15%, rgba(48, 4, 63, 0.4) 0%, transparent 70%),
-    radial-gradient(ellipse 400px 400px at 90% 85%, rgba(12, 38, 67, 0.35) 0%, transparent 70%);
-  pointer-events: none;
-}
+        /* Header */
+        .header {
+            position: relative;
+            z-index: 2;
+            padding: 60px 80px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-.slide::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-  background-size: 50px 50px;
-  pointer-events: none;
-}
+        .header-badge {
+            display: inline-block;
+            padding: 7px 18px;
+            border: 1px solid var(--accent-amber);
+            border-radius: 100px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-amber);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            animation: fadeIn 0.6s ease 0.1s both;
+        }
 
-.slide-content {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  max-width: 1100px;
-}
+        .header h1 {
+            font-size: 52px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 16px;
+            animation: fadeIn 0.6s ease 0.2s both;
+        }
 
-/* ===== Common Elements ===== */
-.slide-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--accent-amber);
-  margin-bottom: 16px;
-}
+        .header h1 .hl-amber { color: var(--accent-amber); text-shadow: 0 0 40px rgba(245, 158, 11, 0.25); }
+        .header h1 .hl-cyan { color: var(--accent-cyan); text-shadow: 0 0 40px rgba(34, 211, 238, 0.25); }
 
-.slide h2 {
-  font-size: 44px;
-  font-weight: 800;
-  margin-bottom: 36px;
-  line-height: 1.15;
-}
+        .header .subtitle {
+            font-size: 18px;
+            color: var(--text-muted);
+            font-weight: 300;
+            animation: fadeIn 0.6s ease 0.3s both;
+        }
 
-/* ===== SLIDE 1: Title ===== */
-.title-slide .week-badge {
-  display: inline-block;
-  padding: 8px 22px;
-  border: 1px solid var(--accent-amber);
-  border-radius: 100px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  color: var(--accent-amber);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 36px;
-  animation: fadeInDown 0.8s ease 0.2s both;
-}
+        .stats-bar {
+            display: flex;
+            gap: 40px;
+            margin-top: 30px;
+            animation: fadeIn 0.6s ease 0.4s both;
+        }
 
-.title-slide h1 {
-  font-size: 68px;
-  font-weight: 900;
-  line-height: 1.08;
-  margin-bottom: 20px;
-  animation: fadeInDown 0.8s ease 0.4s both;
-}
+        .stat {
+            text-align: center;
+        }
 
-.title-slide h1 .hl-amber { color: var(--accent-amber); text-shadow: var(--glow-amber); }
-.title-slide h1 .hl-cyan { color: var(--accent-cyan); text-shadow: var(--glow-cyan); }
+        .stat-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 28px;
+            font-weight: 800;
+        }
 
-.title-slide .subtitle {
-  font-size: 20px;
-  color: var(--text-muted);
-  font-weight: 300;
-  line-height: 1.6;
-  max-width: 650px;
-  animation: fadeInDown 0.8s ease 0.6s both;
-}
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
 
-.title-slide .topics {
-  display: flex;
-  gap: 16px;
-  margin-top: 40px;
-  animation: fadeInDown 0.8s ease 0.8s both;
-}
+        /* Month Sections */
+        .months-container {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 80px 80px;
+        }
 
-.topic-pill {
-  padding: 10px 22px;
-  border-radius: 12px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  font-weight: 600;
-}
+        .month-section {
+            margin-bottom: 50px;
+            animation: fadeInUp 0.6s ease both;
+        }
 
-.pill-amber { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--accent-amber); }
-.pill-cyan { background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.3); color: var(--accent-cyan); }
+        .month-section:nth-child(1) { animation-delay: 0.3s; }
+        .month-section:nth-child(2) { animation-delay: 0.4s; }
+        .month-section:nth-child(3) { animation-delay: 0.5s; }
+        .month-section:nth-child(4) { animation-delay: 0.6s; }
+        .month-section:nth-child(5) { animation-delay: 0.7s; }
 
-/* ===== Cards ===== */
-.card-grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
+        .month-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
 
-.card-grid-3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 20px;
-}
+        .month-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 8px;
+            letter-spacing: 1px;
+        }
 
-.card-grid-4 {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
+        .month-1 .month-num { background: rgba(245, 158, 11, 0.12); color: var(--accent-amber); }
+        .month-2 .month-num { background: rgba(34, 211, 238, 0.12); color: var(--accent-cyan); }
+        .month-3 .month-num { background: rgba(52, 211, 153, 0.12); color: var(--accent-green); }
+        .month-4 .month-num { background: rgba(167, 139, 250, 0.12); color: var(--accent-violet); }
+        .month-5 .month-num { background: rgba(251, 113, 133, 0.12); color: var(--accent-rose); }
 
-.card {
-  background: var(--bg-card);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  padding: 28px 26px;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
+        .month-title {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
 
-.card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(255,255,255,0.12);
-}
+        .weeks-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
 
-.card-accent {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-}
+        /* Week Cards */
+        .week-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 24px 22px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
 
-.card h3 {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
+        .week-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+        }
 
-.card p {
-  font-size: 14px;
-  color: var(--text-muted);
-  line-height: 1.6;
-}
+        /* Active cards */
+        .week-card.active {
+            cursor: pointer;
+        }
 
-/* ===== Code Block ===== */
-.code-block {
-  background: #08080f;
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
-  padding: 24px 28px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  line-height: 1.9;
-  position: relative;
-  overflow: hidden;
-}
+        .week-card.active:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255,255,255,0.15);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        }
 
-.code-header {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  padding: 8px 18px;
-  background: rgba(255,255,255,0.03);
-  font-size: 11px;
-  color: var(--text-muted);
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-}
+        /* Locked cards */
+        .week-card.locked {
+            cursor: default;
+            opacity: 0.45;
+        }
 
-.code-body { margin-top: 20px; }
-.c-key { color: var(--accent-cyan); }
-.c-str { color: var(--accent-green); }
-.c-comment { color: #444466; }
-.c-val { color: var(--accent-amber); }
-.c-rose { color: var(--accent-rose); }
-.c-violet { color: var(--accent-violet); }
+        .week-card.locked:hover {
+            opacity: 0.6;
+        }
 
-/* ===== Diagram ===== */
-.iam-diagram {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-}
+        .week-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
 
-.diagram-row {
-  display: flex;
-  gap: 24px;
-  justify-content: center;
-  align-items: center;
-}
+        .week-topic {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
 
-.diagram-box {
-  padding: 18px 32px;
-  border-radius: 14px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 15px;
-  font-weight: 600;
-  text-align: center;
-  min-width: 150px;
-  transition: all 0.3s ease;
-}
+        .week-sections {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
 
-.diagram-box:hover { transform: scale(1.05); }
+        .week-status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+        }
 
-.diagram-box .box-desc {
-  font-family: 'Outfit', sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
+        .status-ready {
+            background: rgba(52, 211, 153, 0.1);
+            color: var(--accent-green);
+            border: 1px solid rgba(52, 211, 153, 0.2);
+        }
 
-.d-amber {
-  background: rgba(245, 158, 11, 0.08);
-  border: 2px solid var(--accent-amber);
-  color: var(--accent-amber);
-  box-shadow: var(--glow-amber);
-}
+        .status-locked {
+            background: rgba(255, 255, 255, 0.03);
+            color: #444;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
 
-.d-cyan {
-  background: rgba(34, 211, 238, 0.08);
-  border: 2px solid var(--accent-cyan);
-  color: var(--accent-cyan);
-  box-shadow: var(--glow-cyan);
-}
+        /* Coming Soon Tooltip */
+        .tooltip {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(17, 10, 32, 0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text-muted);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 10;
+            white-space: nowrap;
+        }
 
-.d-green {
-  background: rgba(52, 211, 153, 0.08);
-  border: 2px solid var(--accent-green);
-  color: var(--accent-green);
-  box-shadow: var(--glow-green);
-}
+        .week-card.locked:hover .tooltip {
+            opacity: 1;
+        }
 
-.d-rose {
-  background: rgba(251, 113, 133, 0.08);
-  border: 2px solid var(--accent-rose);
-  color: var(--accent-rose);
-  box-shadow: 0 0 40px rgba(251, 113, 133, 0.25);
-}
+        /* Color accents per month */
+        .month-1 .week-card::before { background: var(--accent-amber); }
+        .month-1 .week-card.active .week-topic { color: var(--accent-amber); }
+        .month-1 .week-card.active:hover { border-color: rgba(245, 158, 11, 0.3); }
 
-.d-violet {
-  background: rgba(167, 139, 250, 0.08);
-  border: 2px solid var(--accent-violet);
-  color: var(--accent-violet);
-  box-shadow: 0 0 40px rgba(167, 139, 250, 0.25);
-}
+        .month-2 .week-card::before { background: var(--accent-cyan); }
+        .month-2 .week-card.active .week-topic { color: var(--accent-cyan); }
+        .month-2 .week-card.active:hover { border-color: rgba(34, 211, 238, 0.3); }
 
-.arrow-label {
-  font-size: 13px;
-  color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
-}
+        .month-3 .week-card::before { background: var(--accent-green); }
+        .month-3 .week-card.active .week-topic { color: var(--accent-green); }
+        .month-3 .week-card.active:hover { border-color: rgba(52, 211, 153, 0.3); }
 
-/* ===== Flow Arrows ===== */
-.flow-arrow {
-  color: var(--text-muted);
-  font-size: 22px;
-  animation: pulseArrow 2s ease infinite;
-}
+        .month-4 .week-card::before { background: var(--accent-violet); }
+        .month-4 .week-card.active .week-topic { color: var(--accent-violet); }
+        .month-4 .week-card.active:hover { border-color: rgba(167, 139, 250, 0.3); }
 
-@keyframes pulseArrow {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
-}
+        .month-5 .week-card::before { background: var(--accent-rose); }
+        .month-5 .week-card.active .week-topic { color: var(--accent-rose); }
+        .month-5 .week-card.active:hover { border-color: rgba(251, 113, 133, 0.3); }
 
-/* ===== Best Practices ===== */
-.practice-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 18px;
-  padding: 20px 24px;
-  background: var(--bg-card);
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.05);
-  transition: all 0.3s ease;
-}
+        /* Footer */
+        .footer {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 20px 80px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-.practice-item:hover {
-  border-color: var(--accent-amber);
-  transform: translateX(4px);
-}
+        .footer p {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
 
-.practice-num {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 16px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
+        .footer .name { color: var(--accent-amber); }
 
-.practice-item h3 {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
+        /* Particles */
+        .particle {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+            animation: floatUp linear infinite;
+        }
 
-.practice-item p {
-  font-size: 13px;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
+        @keyframes floatUp {
+            0% { transform: translateY(100vh); opacity: 0; }
+            10% { opacity: 0.5; }
+            90% { opacity: 0.5; }
+            100% { transform: translateY(-100vh); opacity: 0; }
+        }
 
-/* ===== Hands-on ===== */
-.task-card {
-  background: var(--bg-card);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  padding: 24px;
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  transition: all 0.3s ease;
-}
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-.task-card:hover {
-  border-color: var(--accent-green);
-  transform: translateY(-2px);
-}
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-.task-num {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 28px;
-  font-weight: 800;
-  min-width: 45px;
-}
-
-.task-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-.task-card p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
-
-/* ===== Navigation ===== */
-.nav-bar {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: rgba(17, 10, 32, 0.92);
-  backdrop-filter: blur(20px);
-  padding: 10px 22px;
-  border-radius: 100px;
-  border: 1px solid rgba(255,255,255,0.07);
-  z-index: 100;
-}
-
-.nav-dots { display: flex; gap: 7px; }
-
-.nav-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.12);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.nav-dot.active {
-  background: var(--accent-amber);
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
-  width: 26px;
-  border-radius: 10px;
-}
-
-.nav-btn {
-  background: none;
-  border: 1px solid rgba(255,255,255,0.1);
-  color: var(--text-primary);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  transition: all 0.3s ease;
-}
-
-.nav-btn:hover { border-color: var(--accent-amber); color: var(--accent-amber); }
-
-.slide-counter {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--text-muted);
-  min-width: 48px;
-  text-align: center;
-}
-
-/* ===== Animations ===== */
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.slide.active .anim { animation: fadeInUp 0.5s ease both; }
-.slide.active .d1 { animation-delay: 0.1s; }
-.slide.active .d2 { animation-delay: 0.2s; }
-.slide.active .d3 { animation-delay: 0.3s; }
-.slide.active .d4 { animation-delay: 0.4s; }
-.slide.active .d5 { animation-delay: 0.5s; }
-.slide.active .d6 { animation-delay: 0.6s; }
-.slide.active .d7 { animation-delay: 0.7s; }
-
-/* Particles */
-.particle {
-  position: fixed;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 1;
-  animation: floatUp linear infinite;
-}
-
-@keyframes floatUp {
-  0% { transform: translateY(100vh); opacity: 0; }
-  10% { opacity: 0.6; }
-  90% { opacity: 0.6; }
-  100% { transform: translateY(-100vh); opacity: 0; }
-}
-
-/* ===== Highlight box ===== */
-.highlight-box {
-  padding: 16px 22px;
-  border-radius: 12px;
-  border-left: 3px solid;
-  margin-top: 20px;
-  font-size: 14px;
-  color: var(--text-muted);
-  line-height: 1.6;
-}
-
-.highlight-box strong { color: var(--text-primary); }
-</style>
+        @media (max-width: 900px) {
+            .header { padding: 40px 30px 30px; }
+            .header h1 { font-size: 36px; }
+            .months-container { padding: 10px 30px 60px; }
+            .weeks-grid { grid-template-columns: 1fr 1fr; }
+            .stats-bar { gap: 24px; }
+        }
+    </style>
 </head>
 <body>
 
 <div id="particles"></div>
 
-<!-- SLIDE 1: Title -->
-<div class="slide active title-slide" data-slide="0">
-  <div class="slide-content">
-    <div class="week-badge">AWS Developer Associate — Week 1</div>
+<!-- Header -->
+<div class="header">
+    <div class="header-badge">20-Week Study Plan</div>
     <h1>
-      <span class="hl-amber">IAM</span> &<br>
-      <span class="hl-cyan">AWS CLI</span>
+        <span class="hl-amber">AWS</span> Developer<br>
+        Associate <span class="hl-cyan">DVA-C02</span>
     </h1>
-    <p class="subtitle">
-      Identity and Access Management — the foundation of everything in AWS.
-      Who can do what, and how to control it.
-    </p>
-    <div class="topics">
-      <span class="topic-pill pill-amber">IAM Users, Groups & Policies</span>
-      <span class="topic-pill pill-cyan">Roles & Security</span>
-      <span class="topic-pill pill-amber">AWS CLI Setup</span>
+    <p class="subtitle">From zero to certified — week by week, topic by topic.</p>
+    <div class="stats-bar">
+        <div class="stat">
+            <div class="stat-num" style="color: var(--accent-amber);">20</div>
+            <div class="stat-label">Weeks</div>
+        </div>
+        <div class="stat">
+            <div class="stat-num" style="color: var(--accent-cyan);">5</div>
+            <div class="stat-label">Months</div>
+        </div>
+        <div class="stat">
+            <div class="stat-num" style="color: var(--accent-green);">~200</div>
+            <div class="stat-label">Hours</div>
+        </div>
+        <div class="stat">
+            <div class="stat-num" style="color: var(--accent-violet);">2</div>
+            <div class="stat-label">Ready</div>
+        </div>
     </div>
-  </div>
 </div>
 
-<!-- SLIDE 2: What is IAM -->
-<div class="slide" data-slide="1">
-  <div class="slide-content">
-    <div class="slide-label anim d1">Understanding IAM</div>
-    <h2 class="anim d2">What is IAM?</h2>
-    <div class="card-grid-2">
-      <div class="card anim d3" style="grid-column: 1 / -1;">
-        <h3 style="color: var(--accent-amber); font-size: 20px;">Identity and Access Management</h3>
-        <p style="font-size: 16px; margin-top: 8px;">
-          IAM is a <strong style="color: var(--text-primary);">global service</strong> — it controls who can access your AWS resources and what they can do with them.
-          Every API call in AWS goes through IAM for authorization. No exceptions.
-        </p>
-        <div class="highlight-box anim d4" style="border-color: var(--accent-amber); background: rgba(245, 158, 11, 0.04); margin-top: 20px;">
-          <strong>Key Point:</strong> When you create an AWS account, you get a <strong>Root Account</strong>.
-          This has unlimited access. You should never use it for daily tasks — create IAM users instead.
-        </div>
-      </div>
-      <div class="card anim d5">
-        <div class="card-accent" style="background: var(--accent-cyan);"></div>
-        <h3 style="color: var(--accent-cyan);">What IAM Controls</h3>
-        <p>
-          <strong style="color: var(--text-primary);">Authentication</strong> — proving who you are<br><br>
-          <strong style="color: var(--text-primary);">Authorization</strong> — what you're allowed to do<br><br>
-          <strong style="color: var(--text-primary);">Audit</strong> — tracking what was done
-        </p>
-      </div>
-      <div class="card anim d6">
-        <div class="card-accent" style="background: var(--accent-green);"></div>
-        <h3 style="color: var(--accent-green);">Why It Matters</h3>
-        <p>
-          <strong style="color: var(--text-primary);">Security</strong> — least privilege access<br><br>
-          <strong style="color: var(--text-primary);">Compliance</strong> — who accessed what, when<br><br>
-          <strong style="color: var(--text-primary);">Organization</strong> — manage teams at scale
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- Months -->
+<div class="months-container">
 
-<!-- SLIDE 3: IAM Components -->
-<div class="slide" data-slide="2">
-  <div class="slide-content">
-    <div class="slide-label anim d1">Core Components</div>
-    <h2 class="anim d2">The Building Blocks of IAM</h2>
-    <div class="card-grid-4">
-      <div class="card anim d3">
-        <div class="card-accent" style="background: var(--accent-amber);"></div>
-        <h3 style="color: var(--accent-amber);">Users</h3>
-        <p>
-          A person or application that interacts with AWS. Each user gets unique credentials.
-        </p>
-        <div class="highlight-box" style="border-color: var(--accent-amber); background: rgba(245,158,11,0.04); margin-top: 14px; font-size: 12px;">
-          One physical person = One IAM user. Never share credentials.
+    <!-- Month 1 -->
+    <div class="month-section month-1">
+        <div class="month-header">
+            <span class="month-num">MONTH 1</span>
+            <span class="month-title">Foundations — IAM, EC2, Networking, Databases</span>
         </div>
-      </div>
-      <div class="card anim d4">
-        <div class="card-accent" style="background: var(--accent-cyan);"></div>
-        <h3 style="color: var(--accent-cyan);">Groups</h3>
-        <p>
-          A collection of users. Attach policies to the group, and all members inherit them.
-        </p>
-        <div class="highlight-box" style="border-color: var(--accent-cyan); background: rgba(34,211,238,0.04); margin-top: 14px; font-size: 12px;">
-          Groups can only contain users — not other groups.
-        </div>
-      </div>
-      <div class="card anim d5">
-        <div class="card-accent" style="background: var(--accent-green);"></div>
-        <h3 style="color: var(--accent-green);">Policies</h3>
-        <p>
-          JSON documents that define permissions. They specify what actions are allowed or denied.
-        </p>
-        <div class="highlight-box" style="border-color: var(--accent-green); background: rgba(52,211,153,0.04); margin-top: 14px; font-size: 12px;">
-          Apply the <strong>Least Privilege Principle</strong> — give only needed access.
-        </div>
-      </div>
-      <div class="card anim d6">
-        <div class="card-accent" style="background: var(--accent-violet);"></div>
-        <h3 style="color: var(--accent-violet);">Roles</h3>
-        <p>
-          Temporary permissions for AWS services or external users. No permanent credentials.
-        </p>
-        <div class="highlight-box" style="border-color: var(--accent-violet); background: rgba(167,139,250,0.04); margin-top: 14px; font-size: 12px;">
-          EC2 instances use roles — never store keys on instances.
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- SLIDE 4: How IAM Works - Diagram -->
-<div class="slide" data-slide="3">
-  <div class="slide-content">
-    <div class="slide-label anim d1">How It Connects</div>
-    <h2 class="anim d2">IAM in Action</h2>
-    <div class="iam-diagram anim d3">
-      <!-- Root -->
-      <div class="diagram-row">
-        <div class="diagram-box d-amber" style="min-width: 240px;">
-          AWS Account (Root)
-          <div class="box-desc">Has full access — never use daily</div>
-        </div>
-      </div>
-
-      <div class="flow-arrow">|</div>
-      <div class="arrow-label">creates</div>
-      <div class="flow-arrow">v</div>
-
-      <!-- Users & Groups -->
-      <div class="diagram-row" style="gap: 40px;">
-        <div class="diagram-box d-cyan">
-          Users
-          <div class="box-desc">People / Apps</div>
-        </div>
-        <div class="diagram-box d-green">
-          Groups
-          <div class="box-desc">Team collections</div>
-        </div>
-        <div class="diagram-box d-violet">
-          Roles
-          <div class="box-desc">Service permissions</div>
-        </div>
-      </div>
-
-      <div class="flow-arrow">|</div>
-      <div class="arrow-label">attached to</div>
-      <div class="flow-arrow">v</div>
-
-      <!-- Policies -->
-      <div class="diagram-row">
-        <div class="diagram-box d-rose" style="min-width: 340px;">
-          Policies (JSON)
-          <div class="box-desc">Allow or Deny specific actions on specific resources</div>
-        </div>
-      </div>
-
-      <div class="flow-arrow">|</div>
-      <div class="arrow-label">controls access to</div>
-      <div class="flow-arrow">v</div>
-
-      <!-- Resources -->
-      <div class="diagram-row" style="gap: 16px;">
-        <div class="diagram-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); min-width: 100px; padding: 14px 20px; font-size: 13px;">S3</div>
-        <div class="diagram-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); min-width: 100px; padding: 14px 20px; font-size: 13px;">EC2</div>
-        <div class="diagram-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); min-width: 100px; padding: 14px 20px; font-size: 13px;">RDS</div>
-        <div class="diagram-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); min-width: 100px; padding: 14px 20px; font-size: 13px;">Lambda</div>
-        <div class="diagram-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); min-width: 100px; padding: 14px 20px; font-size: 13px;">...</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- SLIDE 5: IAM Policy Structure -->
-<div class="slide" data-slide="4">
-  <div class="slide-content">
-    <div class="slide-label anim d1">Policy Deep Dive</div>
-    <h2 class="anim d2">IAM Policy Structure</h2>
-    <div class="card-grid-2" style="gap: 24px;">
-      <div class="code-block anim d3">
-        <div class="code-header">IAM Policy — JSON Example</div>
-        <div class="code-body">
-<pre>{
-  <span class="c-key">"Version"</span>: <span class="c-str">"2012-10-17"</span>,
-  <span class="c-key">"Statement"</span>: [
-    {
-      <span class="c-key">"Effect"</span>: <span class="c-val">"Allow"</span>,
-      <span class="c-key">"Action"</span>: [
-        <span class="c-str">"s3:GetObject"</span>,
-        <span class="c-str">"s3:PutObject"</span>
-      ],
-      <span class="c-key">"Resource"</span>: <span class="c-str">"arn:aws:s3:::my-bucket/*"</span>
-    },
-    {
-      <span class="c-key">"Effect"</span>: <span class="c-rose">"Deny"</span>,
-      <span class="c-key">"Action"</span>: <span class="c-str">"s3:DeleteObject"</span>,
-      <span class="c-key">"Resource"</span>: <span class="c-str">"*"</span>
-    }
-  ]
-}</pre>
-        </div>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 16px;">
-        <div class="card anim d4" style="flex: 1;">
-          <h3 style="color: var(--accent-amber);">Effect</h3>
-          <p><strong style="color: var(--accent-green);">Allow</strong> or <strong style="color: var(--accent-rose);">Deny</strong> — what happens when the statement matches. Deny always wins over Allow.</p>
-        </div>
-        <div class="card anim d5" style="flex: 1;">
-          <h3 style="color: var(--accent-cyan);">Action</h3>
-          <p>The specific API calls being controlled. Format: <code style="color: var(--accent-cyan);">service:Action</code> — like <code style="color: var(--accent-cyan);">s3:GetObject</code> or <code style="color: var(--accent-cyan);">ec2:StartInstances</code></p>
-        </div>
-        <div class="card anim d6" style="flex: 1;">
-          <h3 style="color: var(--accent-green);">Resource</h3>
-          <p>Which AWS resource this applies to. Uses ARN format. Use <code style="color: var(--accent-green);">*</code> for all resources (not recommended).</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- SLIDE 6: Policy Types -->
-<div class="slide" data-slide="5">
-  <div class="slide-content">
-    <div class="slide-label anim d1">Policy Types</div>
-    <h2 class="anim d2">Different Ways to Attach Policies</h2>
-    <div class="card-grid-3">
-      <div class="card anim d3">
-        <div class="card-accent" style="background: var(--accent-amber);"></div>
-        <h3 style="color: var(--accent-amber);">AWS Managed</h3>
-        <p>Pre-built by AWS for common use cases. Easy to use but less granular.</p>
-        <div style="margin-top: 16px;">
-          <div class="code-block" style="padding: 14px 18px; font-size: 12px;">
-            <span class="c-str">AdministratorAccess</span><br>
-            <span class="c-str">ReadOnlyAccess</span><br>
-            <span class="c-str">AmazonS3FullAccess</span>
-          </div>
-        </div>
-      </div>
-      <div class="card anim d4">
-        <div class="card-accent" style="background: var(--accent-cyan);"></div>
-        <h3 style="color: var(--accent-cyan);">Customer Managed</h3>
-        <p>Created by you. Full control over permissions. Best practice for production.</p>
-        <div class="highlight-box" style="border-color: var(--accent-cyan); background: rgba(34,211,238,0.04); margin-top: 16px; font-size: 12px;">
-          <strong>Recommended:</strong> Create your own policies tailored to your exact needs.
-        </div>
-      </div>
-      <div class="card anim d5">
-        <div class="card-accent" style="background: var(--accent-violet);"></div>
-        <h3 style="color: var(--accent-violet);">Inline Policies</h3>
-        <p>Embedded directly in a single user, group, or role. Deleted when the entity is deleted.</p>
-        <div class="highlight-box" style="border-color: var(--accent-rose); background: rgba(251,113,133,0.04); margin-top: 16px; font-size: 12px;">
-          <strong>Exam Tip:</strong> Inline policies have a strict 1-to-1 relationship with the entity.
-        </div>
-      </div>
-    </div>
-    <div class="highlight-box anim d6" style="border-color: var(--accent-amber); background: rgba(245,158,11,0.04); margin-top: 24px;">
-      <strong>Evaluation Logic:</strong> By default, all requests are denied. An explicit Allow overrides the default Deny.
-      But an explicit Deny <strong>always</strong> overrides any Allow. This is critical for the exam.
-    </div>
-  </div>
-</div>
-
-<!-- SLIDE 7: IAM Security -->
-<div class="slide" data-slide="6">
-  <div class="slide-content">
-    <div class="slide-label anim d1">Security Features</div>
-    <h2 class="anim d2">Protecting Your AWS Account</h2>
-    <div class="card-grid-2">
-      <div class="card anim d3">
-        <div class="card-accent" style="background: var(--accent-rose);"></div>
-        <h3 style="color: var(--accent-rose);">MFA — Multi-Factor Authentication</h3>
-        <p style="margin-bottom: 14px;">Password alone is not enough. MFA adds a second layer using something you physically have.</p>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <div style="padding: 10px 16px; background: rgba(251,113,133,0.06); border-radius: 10px; font-size: 13px;">
-            <strong style="color: var(--accent-rose);">Virtual MFA</strong> <span style="color: var(--text-muted);">— Google Authenticator, Authy</span>
-          </div>
-          <div style="padding: 10px 16px; background: rgba(251,113,133,0.06); border-radius: 10px; font-size: 13px;">
-            <strong style="color: var(--accent-rose);">Hardware Key</strong> <span style="color: var(--text-muted);">— YubiKey, Gemalto</span>
-          </div>
-        </div>
-      </div>
-      <div class="card anim d4">
-        <div class="card-accent" style="background: var(--accent-green);"></div>
-        <h3 style="color: var(--accent-green);">Password Policy</h3>
-        <p style="margin-bottom: 14px;">Set rules for all IAM users in your account to enforce strong passwords.</p>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <div style="padding: 10px 16px; background: rgba(52,211,153,0.06); border-radius: 10px; font-size: 13px;">
-            <span style="color: var(--text-muted);">Minimum length, require uppercase, numbers, symbols</span>
-          </div>
-          <div style="padding: 10px 16px; background: rgba(52,211,153,0.06); border-radius: 10px; font-size: 13px;">
-            <span style="color: var(--text-muted);">Prevent password reuse, force rotation</span>
-          </div>
-        </div>
-      </div>
-      <div class="card anim d5">
-        <div class="card-accent" style="background: var(--accent-cyan);"></div>
-        <h3 style="color: var(--accent-cyan);">Access Keys</h3>
-        <p>Used for programmatic access (CLI / SDK). Each user can have max 2 active keys. Treat them like passwords — never share or commit to code.</p>
-      </div>
-      <div class="card anim d6">
-        <div class="card-accent" style="background: var(--accent-amber);"></div>
-        <h3 style="color: var(--accent-amber);">IAM Credentials Report</h3>
-        <p>Account-level report listing all users and their credential status. Use it to audit MFA, access keys, and last login times.</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- SLIDE 8: AWS CLI -->
-<div class="slide" data-slide="7">
-  <div class="slide-content">
-    <div class="slide-label anim d1">AWS CLI</div>
-    <h2 class="anim d2">Command Line Interface</h2>
-    <div class="card-grid-2" style="gap: 24px;">
-      <div style="display: flex; flex-direction: column; gap: 16px;">
-        <div class="card anim d3">
-          <h3 style="color: var(--accent-cyan);">What is AWS CLI?</h3>
-          <p>A tool to interact with AWS services from your terminal. Everything you can do in the Console, you can do with the CLI — and automate it.</p>
-        </div>
-        <div class="card anim d4">
-          <h3 style="color: var(--accent-amber);">Three Ways to Access AWS</h3>
-          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-            <div style="padding: 10px 16px; background: rgba(245,158,11,0.06); border-radius: 10px; font-size: 13px;">
-              <strong style="color: var(--accent-amber);">Console</strong> <span style="color: var(--text-muted);">— Browser, protected by password + MFA</span>
+        <div class="weeks-grid">
+            <div class="week-card active" onclick="window.location.href='week1-iam-aws-cli.html'">
+                <div class="week-number">Week 01</div>
+                <div class="week-topic">IAM & AWS CLI</div>
+                <div class="week-sections">IAM Users, Groups, Policies, Roles, MFA, CLI Setup</div>
+                <span class="week-status status-ready">Ready</span>
             </div>
-            <div style="padding: 10px 16px; background: rgba(34,211,238,0.06); border-radius: 10px; font-size: 13px;">
-              <strong style="color: var(--accent-cyan);">CLI</strong> <span style="color: var(--text-muted);">— Terminal, protected by Access Keys</span>
+            <div class="week-card active" onclick="window.location.href='week2-ec2-fundamentals.html'">
+                <div class="week-number">Week 02</div>
+                <div class="week-topic">EC2 Fundamentals</div>
+                <div class="week-sections">EC2 Basics, Instance Types, Security Groups, Storage</div>
+                <span class="week-status status-ready">Ready</span>
             </div>
-            <div style="padding: 10px 16px; background: rgba(167,139,250,0.06); border-radius: 10px; font-size: 13px;">
-              <strong style="color: var(--accent-violet);">SDK</strong> <span style="color: var(--text-muted);">— Code, protected by Access Keys</span>
+            <div class="week-card locked">
+                <div class="week-number">Week 03</div>
+                <div class="week-topic">EC2 Advanced & ELB</div>
+                <div class="week-sections">Solutions Architect Level, ELB & Auto Scaling</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
             </div>
-          </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 04</div>
+                <div class="week-topic">RDS, ElastiCache & Route 53</div>
+                <div class="week-sections">RDS, Aurora, ElastiCache, DNS with Route 53</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
         </div>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 16px;">
-        <div class="code-block anim d5">
-          <div class="code-header">Terminal — Setup & Usage</div>
-          <div class="code-body">
-<pre><span class="c-comment"># Configure your CLI</span>
-<span class="c-val">$</span> aws configure
-  AWS Access Key ID: <span class="c-str">AKIA...</span>
-  Secret Access Key: <span class="c-str">wJalr...</span>
-  Default region: <span class="c-str">us-east-1</span>
-
-<span class="c-comment"># Test it — list your S3 buckets</span>
-<span class="c-val">$</span> aws s3 ls
-
-<span class="c-comment"># List IAM users</span>
-<span class="c-val">$</span> aws iam list-users
-
-<span class="c-comment"># Describe EC2 instances</span>
-<span class="c-val">$</span> aws ec2 describe-instances</pre>
-          </div>
-        </div>
-        <div class="highlight-box anim d6" style="border-color: var(--accent-rose); background: rgba(251,113,133,0.04);">
-          <strong>Never</strong> store Access Keys on an EC2 instance. Use IAM Roles instead — they provide temporary credentials automatically.
-        </div>
-      </div>
     </div>
-  </div>
+
+    <!-- Month 2 -->
+    <div class="month-section month-2">
+        <div class="month-header">
+            <span class="month-num">MONTH 2</span>
+            <span class="month-title">Storage & Containers — S3, CloudFront, ECS, Beanstalk</span>
+        </div>
+        <div class="weeks-grid">
+            <div class="week-card locked">
+                <div class="week-number">Week 05</div>
+                <div class="week-topic">S3 Fundamentals</div>
+                <div class="week-sections">S3 Introduction, Bucket Policies, Security</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 06</div>
+                <div class="week-topic">S3 Advanced & CloudFront</div>
+                <div class="week-sections">Versioning, Replication, CloudFront, Global Accelerator</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 07</div>
+                <div class="week-topic">Containers</div>
+                <div class="week-sections">ECS, ECR, Fargate, EKS</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 08</div>
+                <div class="week-topic">Elastic Beanstalk</div>
+                <div class="week-sections">Beanstalk Deployments, Environments</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Month 3 -->
+    <div class="month-section month-3">
+        <div class="month-header">
+            <span class="month-num">MONTH 3</span>
+            <span class="month-title">CI/CD & Monitoring — Pipelines, CloudFormation, CloudWatch</span>
+        </div>
+        <div class="weeks-grid">
+            <div class="week-card locked">
+                <div class="week-number">Week 09</div>
+                <div class="week-topic">CI/CD Part 1</div>
+                <div class="week-sections">CodeCommit, CodePipeline</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 10</div>
+                <div class="week-topic">CI/CD Part 2</div>
+                <div class="week-sections">CodeBuild, CodeDeploy</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 11</div>
+                <div class="week-topic">CloudFormation</div>
+                <div class="week-sections">Templates, Stacks, Infrastructure as Code</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 12</div>
+                <div class="week-topic">Monitoring</div>
+                <div class="week-sections">CloudWatch, X-Ray, CloudTrail</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Month 4 -->
+    <div class="month-section month-4">
+        <div class="month-header">
+            <span class="month-num">MONTH 4</span>
+            <span class="month-title">Serverless — Lambda, DynamoDB, API Gateway, SAM</span>
+        </div>
+        <div class="weeks-grid">
+            <div class="week-card locked">
+                <div class="week-number">Week 13</div>
+                <div class="week-topic">Integration & Messaging</div>
+                <div class="week-sections">SQS, SNS, Kinesis</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 14</div>
+                <div class="week-topic">Lambda Fundamentals</div>
+                <div class="week-sections">Lambda Functions, Triggers, Permissions</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 15</div>
+                <div class="week-topic">DynamoDB</div>
+                <div class="week-sections">Tables, Indexes, Streams, DAX</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 16</div>
+                <div class="week-topic">API Gateway & SAM</div>
+                <div class="week-sections">REST APIs, Stages, SAM Templates</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Month 5 -->
+    <div class="month-section month-5">
+        <div class="month-header">
+            <span class="month-num">MONTH 5</span>
+            <span class="month-title">Advanced & Review — Security, CDK, Cognito, Exam Prep</span>
+        </div>
+        <div class="weeks-grid">
+            <div class="week-card locked">
+                <div class="week-number">Week 17</div>
+                <div class="week-topic">CDK & Cognito</div>
+                <div class="week-sections">Cloud Development Kit, User Pools, Identity Pools</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 18</div>
+                <div class="week-topic">Advanced Security</div>
+                <div class="week-sections">KMS, SSM, Secrets Manager, Encryption</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 19</div>
+                <div class="week-topic">Advanced Services</div>
+                <div class="week-sections">Step Functions, AppSync, Amplify, SES</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+            <div class="week-card locked">
+                <div class="week-number">Week 20</div>
+                <div class="week-topic">Exam Prep & Review</div>
+                <div class="week-sections">Practice Exams, Weak Areas, Final Review</div>
+                <span class="week-status status-locked">Coming Soon</span>
+                <div class="tooltip">Coming Soon</div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
-<!-- SLIDE 9: IAM Roles Deep Dive -->
-<div class="slide" data-slide="8">
-  <div class="slide-content">
-    <div class="slide-label anim d1">Roles Deep Dive</div>
-    <h2 class="anim d2">IAM Roles — Temporary Access</h2>
-    <div class="card-grid-2" style="gap: 24px;">
-      <div style="display: flex; flex-direction: column; gap: 16px;">
-        <div class="card anim d3">
-          <h3 style="color: var(--accent-violet);">When to Use Roles?</h3>
-          <p style="margin-bottom: 12px;">Roles are designed for <strong style="color: var(--text-primary);">delegation</strong> — granting temporary permissions without sharing credentials.</p>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            <div style="padding: 10px 14px; background: rgba(167,139,250,0.06); border-radius: 10px; font-size: 13px;">
-              <strong style="color: var(--accent-violet);">EC2 Instance</strong> <span style="color: var(--text-muted);">needs to read S3</span>
-            </div>
-            <div style="padding: 10px 14px; background: rgba(167,139,250,0.06); border-radius: 10px; font-size: 13px;">
-              <strong style="color: var(--accent-violet);">Lambda Function</strong> <span style="color: var(--text-muted);">needs to write to DynamoDB</span>
-            </div>
-            <div style="padding: 10px 14px; background: rgba(167,139,250,0.06); border-radius: 10px; font-size: 13px;">
-              <strong style="color: var(--accent-violet);">Cross-Account</strong> <span style="color: var(--text-muted);">access between AWS accounts</span>
-            </div>
-          </div>
-        </div>
-        <div class="highlight-box anim d5" style="border-color: var(--accent-amber); background: rgba(245,158,11,0.04);">
-          <strong>Exam Favorite:</strong> Any time you see "EC2 needs access to S3" — the answer is <strong>IAM Role</strong>, not Access Keys.
-        </div>
-      </div>
-      <div class="anim d4">
-        <div class="iam-diagram" style="gap: 10px;">
-          <div class="diagram-box d-cyan" style="min-width: 200px; padding: 14px 24px;">
-            EC2 Instance
-          </div>
-          <div class="flow-arrow">|</div>
-          <div class="arrow-label">assumes</div>
-          <div class="flow-arrow">v</div>
-          <div class="diagram-box d-violet" style="min-width: 200px; padding: 14px 24px;">
-            IAM Role
-            <div class="box-desc">S3ReadOnlyAccess</div>
-          </div>
-          <div class="flow-arrow">|</div>
-          <div class="arrow-label">gets temporary credentials</div>
-          <div class="flow-arrow">v</div>
-          <div class="diagram-box d-green" style="min-width: 200px; padding: 14px 24px;">
-            S3 Bucket
-            <div class="box-desc">Access granted</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- SLIDE 10: Best Practices -->
-<div class="slide" data-slide="9">
-  <div class="slide-content">
-    <div class="slide-label anim d1">Best Practices</div>
-    <h2 class="anim d2">IAM Security Best Practices</h2>
-    <div class="card-grid-2" style="gap: 14px;">
-      <div class="practice-item anim d3">
-        <div class="practice-num" style="background: rgba(245,158,11,0.12); color: var(--accent-amber);">01</div>
-        <div>
-          <h3>Never use Root Account</h3>
-          <p>Only use root for initial setup. Lock it with MFA and forget about it.</p>
-        </div>
-      </div>
-      <div class="practice-item anim d3">
-        <div class="practice-num" style="background: rgba(34,211,238,0.12); color: var(--accent-cyan);">02</div>
-        <div>
-          <h3>Enable MFA everywhere</h3>
-          <p>Especially on root account and all admin users. Non-negotiable.</p>
-        </div>
-      </div>
-      <div class="practice-item anim d4">
-        <div class="practice-num" style="background: rgba(52,211,153,0.12); color: var(--accent-green);">03</div>
-        <div>
-          <h3>Least Privilege Principle</h3>
-          <p>Give users only the permissions they absolutely need. Start with zero and add.</p>
-        </div>
-      </div>
-      <div class="practice-item anim d4">
-        <div class="practice-num" style="background: rgba(167,139,250,0.12); color: var(--accent-violet);">04</div>
-        <div>
-          <h3>Use Groups for permissions</h3>
-          <p>Never attach policies directly to users. Always use groups for team management.</p>
-        </div>
-      </div>
-      <div class="practice-item anim d5">
-        <div class="practice-num" style="background: rgba(251,113,133,0.12); color: var(--accent-rose);">05</div>
-        <div>
-          <h3>Use Roles for services</h3>
-          <p>EC2, Lambda, ECS — always use roles. Never put Access Keys on instances.</p>
-        </div>
-      </div>
-      <div class="practice-item anim d5">
-        <div class="practice-num" style="background: rgba(251,146,60,0.12); color: var(--accent-orange);">06</div>
-        <div>
-          <h3>Audit regularly</h3>
-          <p>Use IAM Credentials Report and Access Advisor to review and remove unused permissions.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- SLIDE 11: Exam Tips -->
-<div class="slide" data-slide="10">
-  <div class="slide-content" style="text-align: center;">
-    <div class="slide-label anim d1">Key Takeaways</div>
-    <h2 class="anim d2" style="font-size: 48px;">
-      Remember These for the<br>
-      <span style="color: var(--accent-amber);">Exam</span>
-    </h2>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 900px; margin: 30px auto 0; text-align: left;">
-      <div class="card anim d3">
-        <h3 style="color: var(--accent-amber); font-size: 15px;">IAM is Global</h3>
-        <p style="font-size: 13px;">Not region-specific. Users, groups, roles are available across all regions.</p>
-      </div>
-      <div class="card anim d3">
-        <h3 style="color: var(--accent-cyan); font-size: 15px;">Explicit Deny Wins</h3>
-        <p style="font-size: 13px;">If any policy says Deny, it overrides ALL Allow statements. Always.</p>
-      </div>
-      <div class="card anim d4">
-        <h3 style="color: var(--accent-green); font-size: 15px;">Roles over Keys</h3>
-        <p style="font-size: 13px;">If a question asks "EC2 needs S3 access" — answer is Role, not Access Keys.</p>
-      </div>
-      <div class="card anim d4">
-        <h3 style="color: var(--accent-violet); font-size: 15px;">Policy Evaluation</h3>
-        <p style="font-size: 13px;">Default deny → Check all policies → Any explicit deny? Denied. → Any allow? Allowed. → Otherwise denied.</p>
-      </div>
-      <div class="card anim d5">
-        <h3 style="color: var(--accent-rose); font-size: 15px;">STS — Security Token Service</h3>
-        <p style="font-size: 13px;">Behind the scenes, roles use STS to generate temporary credentials (AssumeRole).</p>
-      </div>
-      <div class="card anim d5">
-        <h3 style="color: var(--accent-orange); font-size: 15px;">Access Advisor</h3>
-        <p style="font-size: 13px;">Shows which services a user accessed and when. Use it to refine and tighten policies.</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Navigation -->
-<div class="nav-bar">
-  <button class="nav-btn" id="prevBtn">&#8249;</button>
-  <div class="nav-dots" id="navDots"></div>
-  <span class="slide-counter" id="slideCounter">1 / 11</span>
-  <button class="nav-btn" id="nextBtn">&#8250;</button>
+<!-- Footer -->
+<div class="footer">
+    <p>Built by <span class="name">H3RO - YASIR </span> </p>
 </div>
 
 <script>
-// Particles
-const pc = document.getElementById('particles');
-const colors = ['#30043f', '#0c2643', '#f59e0b', '#22d3ee', '#a78bfa'];
-for (let i = 0; i < 18; i++) {
-  const p = document.createElement('div');
-  p.className = 'particle';
-  p.style.left = Math.random() * 100 + '%';
-  p.style.background = colors[Math.floor(Math.random() * colors.length)];
-  p.style.animationDuration = (18 + Math.random() * 28) + 's';
-  p.style.animationDelay = (Math.random() * 20) + 's';
-  p.style.opacity = 0.25 + Math.random() * 0.35;
-  const size = (2 + Math.random() * 4) + 'px';
-  p.style.width = size;
-  p.style.height = size;
-  pc.appendChild(p);
-}
-
-// Slides
-const slides = document.querySelectorAll('.slide');
-const navDots = document.getElementById('navDots');
-const slideCounter = document.getElementById('slideCounter');
-let current = 0;
-
-slides.forEach((_, i) => {
-  const dot = document.createElement('div');
-  dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
-  dot.addEventListener('click', () => goTo(i));
-  navDots.appendChild(dot);
-});
-
-function goTo(index) {
-  if (index < 0 || index >= slides.length) return;
-  slides[current].classList.remove('active');
-  navDots.children[current].classList.remove('active');
-  current = index;
-  slides[current].classList.add('active');
-  navDots.children[current].classList.add('active');
-  slideCounter.textContent = `${current + 1} / ${slides.length}`;
-}
-
-document.getElementById('prevBtn').addEventListener('click', () => goTo(current - 1));
-document.getElementById('nextBtn').addEventListener('click', () => goTo(current + 1));
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
-  if (e.key === 'ArrowLeft') goTo(current - 1);
-});
-
-let touchStart = 0;
-document.addEventListener('touchstart', (e) => touchStart = e.touches[0].clientX);
-document.addEventListener('touchend', (e) => {
-  const diff = touchStart - e.changedTouches[0].clientX;
-  if (Math.abs(diff) > 50) diff > 0 ? goTo(current + 1) : goTo(current - 1);
-});
+    const pc = document.getElementById('particles');
+    const colors = ['#30043f', '#0c2643', '#f59e0b', '#22d3ee', '#a78bfa'];
+    for (let i = 0; i < 15; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.animationDuration = (20 + Math.random() * 30) + 's';
+        p.style.animationDelay = (Math.random() * 15) + 's';
+        p.style.opacity = 0.2 + Math.random() * 0.3;
+        const size = (2 + Math.random() * 3) + 'px';
+        p.style.width = size;
+        p.style.height = size;
+        pc.appendChild(p);
+    }
 </script>
 </body>
 </html>
