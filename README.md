@@ -53,4 +53,4 @@ aws-study-plan/
 
 ## Author
 
-**Yasir Saud** — Java Modernization Team
+**H3RO - YASIR** 
