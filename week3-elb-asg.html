@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Week 3 — ELB & Auto Scaling</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-dark: #05050a;
+  --bg-card: #110a20;
+  --deep-purple: #30043f;
+  --deep-blue: #0c2643;
+  --accent-amber: #f59e0b;
+  --accent-cyan: #22d3ee;
+  --accent-green: #34d399;
+  --accent-rose: #fb7185;
+  --accent-violet: #a78bfa;
+  --accent-orange: #fb923c;
+  --text-primary: #f0f0f5;
+  --text-muted: #8888aa;
+  --glow-amber: 0 0 40px rgba(245, 158, 11, 0.25);
+  --glow-cyan: 0 0 40px rgba(34, 211, 238, 0.25);
+  --glow-green: 0 0 40px rgba(52, 211, 153, 0.25);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 50px 70px;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.slide.active { opacity: 1; transform: translateY(0); pointer-events: all; }
+
+.slide::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 500px 400px at 10% 15%, rgba(48, 4, 63, 0.4) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 400px at 90% 85%, rgba(12, 38, 67, 0.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.slide::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+}
+
+.slide-content { position: relative; z-index: 2; width: 100%; max-width: 1100px; }
+
+.slide-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent-green);
+  margin-bottom: 16px;
+}
+
+.slide h2 { font-size: 44px; font-weight: 800; margin-bottom: 36px; line-height: 1.15; }
+
+/* Title */
+.title-slide .week-badge {
+  display: inline-block;
+  padding: 8px 22px;
+  border: 1px solid var(--accent-green);
+  border-radius: 100px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--accent-green);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 36px;
+  animation: fadeInDown 0.8s ease 0.2s both;
+}
+
+.title-slide h1 {
+  font-size: 64px;
+  font-weight: 900;
+  line-height: 1.08;
+  margin-bottom: 20px;
+  animation: fadeInDown 0.8s ease 0.4s both;
+}
+
+.title-slide h1 .hl-green { color: var(--accent-green); text-shadow: var(--glow-green); }
+.title-slide h1 .hl-amber { color: var(--accent-amber); text-shadow: var(--glow-amber); }
+.title-slide h1 .hl-cyan { color: var(--accent-cyan); text-shadow: var(--glow-cyan); }
+
+.title-slide .subtitle {
+  font-size: 20px;
+  color: var(--text-muted);
+  font-weight: 300;
+  line-height: 1.6;
+  max-width: 700px;
+  animation: fadeInDown 0.8s ease 0.6s both;
+}
+
+.title-slide .topics {
+  display: flex;
+  gap: 16px;
+  margin-top: 40px;
+  animation: fadeInDown 0.8s ease 0.8s both;
+}
+
+.topic-pill {
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pill-green { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.3); color: var(--accent-green); }
+.pill-amber { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--accent-amber); }
+.pill-cyan { background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.3); color: var(--accent-cyan); }
+
+/* Cards */
+.card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 26px 24px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.12); }
+
+.card-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+
+.card h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+.card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+.highlight-box {
+  padding: 14px 20px;
+  border-radius: 12px;
+  border-left: 3px solid;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.highlight-box strong { color: var(--text-primary); }
+
+/* Diagram */
+.diagram-box {
+  padding: 16px 28px;
+  border-radius: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.diagram-box:hover { transform: scale(1.05); }
+
+.diagram-box .box-desc {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.flow-arrow { color: var(--text-muted); font-size: 20px; animation: pulseArrow 2s ease infinite; }
+
+@keyframes pulseArrow { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* Code */
+.code-block {
+  background: #08080f;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 24px 28px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.9;
+  position: relative;
+}
+
+.code-header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 8px 18px;
+  background: rgba(255,255,255,0.03);
+  font-size: 11px;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.code-body { margin-top: 20px; }
+.c-key { color: var(--accent-cyan); }
+.c-str { color: var(--accent-green); }
+.c-comment { color: #444466; }
+.c-val { color: var(--accent-amber); }
+.c-rose { color: var(--accent-rose); }
+
+/* Back link */
+.back-link {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+  z-index: 100;
+  padding: 8px 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.back-link:hover { color: var(--accent-green); border-color: var(--accent-green); }
+
+/* Nav */
+.nav-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(17, 10, 32, 0.92);
+  backdrop-filter: blur(20px);
+  padding: 10px 22px;
+  border-radius: 100px;
+  border: 1px solid rgba(255,255,255,0.07);
+  z-index: 100;
+}
+
+.nav-dots { display: flex; gap: 7px; }
+
+.nav-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-dot.active {
+  background: var(--accent-green);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.5);
+  width: 26px;
+  border-radius: 10px;
+}
+
+.nav-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-primary);
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.nav-btn:hover { border-color: var(--accent-green); color: var(--accent-green); }
+
+.slide-counter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 48px;
+  text-align: center;
+}
+
+/* Animations */
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.slide.active .anim { animation: fadeInUp 0.5s ease both; }
+.slide.active .d1 { animation-delay: 0.1s; }
+.slide.active .d2 { animation-delay: 0.2s; }
+.slide.active .d3 { animation-delay: 0.3s; }
+.slide.active .d4 { animation-delay: 0.4s; }
+.slide.active .d5 { animation-delay: 0.5s; }
+.slide.active .d6 { animation-delay: 0.6s; }
+.slide.active .d7 { animation-delay: 0.7s; }
+
+.particle {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  animation: floatUp linear infinite;
+}
+
+@keyframes floatUp {
+  0% { transform: translateY(100vh); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-100vh); opacity: 0; }
+}
+
+/* Comparison table style */
+.compare-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 1fr 1fr;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.compare-cell {
+  padding: 12px 16px;
+  font-size: 13px;
+  background: var(--bg-card);
+}
+
+.compare-header {
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.compare-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+}
+</style>
+</head>
+<body>
+
+<div id="particles"></div>
+<a href="index.html" class="back-link">&larr; All Weeks</a>
+
+<!-- SLIDE 1: Title -->
+<div class="slide active title-slide" data-slide="0">
+  <div class="slide-content">
+    <div class="week-badge">AWS Developer Associate — Week 3</div>
+    <h1>
+      <span class="hl-green">ELB</span> &<br>
+      <span class="hl-amber">Auto Scaling</span>
+    </h1>
+    <p class="subtitle">
+      Distribute traffic across servers and automatically scale your infrastructure up and down based on demand.
+    </p>
+    <div class="topics">
+      <span class="topic-pill pill-green">Elastic Load Balancer</span>
+      <span class="topic-pill pill-amber">ALB / NLB / GLB</span>
+      <span class="topic-pill pill-cyan">Auto Scaling Groups</span>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 2: What is ELB -->
+<div class="slide" data-slide="1">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Understanding ELB</div>
+    <h2 class="anim d2">What is a Load Balancer?</h2>
+    <div class="card-grid-2">
+      <div class="card anim d3" style="grid-column: 1 / -1;">
+        <h3 style="color: var(--accent-green); font-size: 20px;">Elastic Load Balancing</h3>
+        <p style="font-size: 16px; margin-top: 8px;">
+          A Load Balancer is a server that sits in front of your instances and <strong style="color: var(--text-primary);">distributes incoming traffic</strong> across multiple targets. 
+          Instead of users hitting one server directly, they hit the Load Balancer, and it decides which server handles the request.
+        </p>
+        <div class="highlight-box anim d4" style="border-color: var(--accent-green); background: rgba(52, 211, 153, 0.04); margin-top: 20px;">
+          <strong>Key Point:</strong> ELB is a <strong>managed service</strong> — AWS handles the availability, upgrades, and scaling of the load balancer itself. You just configure it.
+        </div>
+      </div>
+      <div class="card anim d5">
+        <div class="card-accent" style="background: var(--accent-cyan);"></div>
+        <h3 style="color: var(--accent-cyan);">Why Use a Load Balancer?</h3>
+        <p>
+          <strong style="color: var(--text-primary);">Spread load</strong> — no single server gets overwhelmed<br><br>
+          <strong style="color: var(--text-primary);">Single endpoint</strong> — users see one URL, not individual servers<br><br>
+          <strong style="color: var(--text-primary);">High availability</strong> — if one server dies, traffic goes to the others
+        </p>
+      </div>
+      <div class="card anim d6">
+        <div class="card-accent" style="background: var(--accent-amber);"></div>
+        <h3 style="color: var(--accent-amber);">Health Checks</h3>
+        <p>
+          The ELB pings your instances regularly to check if they're alive. If an instance fails the health check, ELB <strong style="color: var(--text-primary);">stops sending traffic to it</strong> automatically.
+        </p>
+        <div class="highlight-box" style="border-color: var(--accent-amber); background: rgba(245,158,11,0.04); font-size: 12px;">
+          Health check = HTTP request to a specific endpoint (e.g. <code style="color: var(--accent-amber);">/health</code> on port 80). Response 200 = healthy.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: ELB Diagram -->
+<div class="slide" data-slide="2">
+  <div class="slide-content">
+    <div class="slide-label anim d1">How It Works</div>
+    <h2 class="anim d2">Traffic Flow with ELB</h2>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 28px; margin-top: 20px;" class="anim d3">
+      <!-- Users -->
+      <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        <div class="diagram-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 14px 20px; font-size: 13px;">User A</div>
+        <div class="diagram-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 14px 20px; font-size: 13px;">User B</div>
+        <div class="diagram-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 14px 20px; font-size: 13px;">User C</div>
+      </div>
+      <!-- Arrow -->
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <div class="flow-arrow">&rarr;</div>
+        <div style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">HTTPS</div>
+      </div>
+      <!-- ELB -->
+      <div class="diagram-box" style="background: rgba(52,211,153,0.08); border: 2px solid var(--accent-green); color: var(--accent-green); min-width: 180px; padding: 28px 32px;">
+        ELB
+        <div class="box-desc">Load Balancer</div>
+        <div class="box-desc">Single DNS endpoint</div>
+      </div>
+      <!-- Arrow -->
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <div class="flow-arrow">&rarr;</div>
+        <div style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">distributes</div>
+      </div>
+      <!-- Targets -->
+      <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        <div class="diagram-box" style="background: rgba(34,211,238,0.08); border: 2px solid var(--accent-cyan); color: var(--accent-cyan); padding: 14px 20px; font-size: 13px;">
+          EC2 — AZ-1a
+          <div class="box-desc">Healthy</div>
+        </div>
+        <div class="diagram-box" style="background: rgba(34,211,238,0.08); border: 2px solid var(--accent-cyan); color: var(--accent-cyan); padding: 14px 20px; font-size: 13px;">
+          EC2 — AZ-1b
+          <div class="box-desc">Healthy</div>
+        </div>
+        <div class="diagram-box" style="background: rgba(251,113,133,0.08); border: 2px solid var(--accent-rose); color: var(--accent-rose); padding: 14px 20px; font-size: 13px;">
+          EC2 — AZ-1c
+          <div class="box-desc">Unhealthy — no traffic</div>
+        </div>
+      </div>
+    </div>
+    <div class="highlight-box anim d5" style="border-color: var(--accent-green); background: rgba(52,211,153,0.04); margin-top: 30px; max-width: 800px; margin-left: auto; margin-right: auto;">
+      <strong>Notice:</strong> The third instance failed its health check. The ELB automatically stopped sending traffic to it. Users never notice — they just hit the ELB's DNS name and everything works.
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 4: ELB Types -->
+<div class="slide" data-slide="3">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Types of Load Balancers</div>
+    <h2 class="anim d2">Three Types of ELB</h2>
+    <div class="card-grid-3">
+      <div class="card anim d3">
+        <div class="card-accent" style="background: var(--accent-green);"></div>
+        <h3 style="color: var(--accent-green);">ALB</h3>
+        <p style="font-size: 15px; color: var(--accent-green); margin-bottom: 10px;">Application Load Balancer</p>
+        <p>Works at <strong style="color: var(--text-primary);">Layer 7</strong> (HTTP/HTTPS). Understands URLs, headers, cookies. The smartest type.</p>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+          <div style="padding: 8px 14px; background: rgba(52,211,153,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Route by URL path: /api vs /images</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(52,211,153,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Route by hostname: api.site.com vs web.site.com</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(52,211,153,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Route by query string: ?platform=mobile</span>
+          </div>
+        </div>
+        <div class="highlight-box" style="border-color: var(--accent-green); background: rgba(52,211,153,0.04); font-size: 12px;">
+          <strong>Best for:</strong> Web apps, microservices, containers
+        </div>
+      </div>
+      <div class="card anim d4">
+        <div class="card-accent" style="background: var(--accent-cyan);"></div>
+        <h3 style="color: var(--accent-cyan);">NLB</h3>
+        <p style="font-size: 15px; color: var(--accent-cyan); margin-bottom: 10px;">Network Load Balancer</p>
+        <p>Works at <strong style="color: var(--text-primary);">Layer 4</strong> (TCP/UDP). Extremely fast. Handles millions of requests per second.</p>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+          <div style="padding: 8px 14px; background: rgba(34,211,238,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Ultra-low latency (~100ms vs ~400ms ALB)</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(34,211,238,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Has a static IP per AZ (Elastic IP)</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(34,211,238,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Preserves client source IP</span>
+          </div>
+        </div>
+        <div class="highlight-box" style="border-color: var(--accent-cyan); background: rgba(34,211,238,0.04); font-size: 12px;">
+          <strong>Best for:</strong> Gaming, IoT, extreme performance needs
+        </div>
+      </div>
+      <div class="card anim d5">
+        <div class="card-accent" style="background: var(--accent-violet);"></div>
+        <h3 style="color: var(--accent-violet);">GLB</h3>
+        <p style="font-size: 15px; color: var(--accent-violet); margin-bottom: 10px;">Gateway Load Balancer</p>
+        <p>Works at <strong style="color: var(--text-primary);">Layer 3</strong> (Network). Routes traffic through third-party virtual appliances.</p>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+          <div style="padding: 8px 14px; background: rgba(167,139,250,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Firewalls, intrusion detection</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(167,139,250,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Deep packet inspection</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(167,139,250,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Uses GENEVE protocol on port 6081</span>
+          </div>
+        </div>
+        <div class="highlight-box" style="border-color: var(--accent-violet); background: rgba(167,139,250,0.04); font-size: 12px;">
+          <strong>Best for:</strong> Security appliances, network monitoring
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 5: ALB Deep Dive -->
+<div class="slide" data-slide="4">
+  <div class="slide-content">
+    <div class="slide-label anim d1">ALB Deep Dive</div>
+    <h2 class="anim d2">Application Load Balancer — Routing</h2>
+    <div class="card-grid-2" style="gap: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="card anim d3">
+          <h3 style="color: var(--accent-green);">URL Path Routing</h3>
+          <p style="margin-bottom: 12px;">Route traffic based on the URL path. One ALB handles multiple apps.</p>
+          <div class="code-block" style="padding: 14px 16px; font-size: 12px;">
+<pre><span class="c-str">example.com/api/*</span>    <span class="c-comment">→ API servers</span>
+<span class="c-str">example.com/images/*</span> <span class="c-comment">→ Image servers</span>
+<span class="c-str">example.com/*</span>        <span class="c-comment">→ Default servers</span></pre>
+          </div>
+        </div>
+        <div class="card anim d5">
+          <h3 style="color: var(--accent-amber);">Hostname Routing</h3>
+          <p style="margin-bottom: 12px;">Different subdomains go to different target groups.</p>
+          <div class="code-block" style="padding: 14px 16px; font-size: 12px;">
+<pre><span class="c-str">api.example.com</span>  <span class="c-comment">→ API servers</span>
+<span class="c-str">web.example.com</span>  <span class="c-comment">→ Web servers</span>
+<span class="c-str">admin.example.com</span><span class="c-comment">→ Admin panel</span></pre>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="card anim d4">
+          <h3 style="color: var(--accent-cyan);">Important ALB Features</h3>
+          <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 8px;">
+            <span><strong style="color: var(--text-primary);">Fixed hostname</strong> — ALB gets a DNS name like <code style="color: var(--accent-cyan); font-size: 12px;">xxx.region.elb.amazonaws.com</code></span>
+            <span><strong style="color: var(--text-primary);">X-Forwarded-For</strong> — Header that contains the real client IP (since ALB sits in between)</span>
+            <span><strong style="color: var(--text-primary);">X-Forwarded-Port</strong> — Original port the client used</span>
+            <span><strong style="color: var(--text-primary);">X-Forwarded-Proto</strong> — Original protocol (HTTP or HTTPS)</span>
+          </p>
+        </div>
+        <div class="highlight-box anim d6" style="border-color: var(--accent-rose); background: rgba(251,113,133,0.04);">
+          <strong>Exam Tip:</strong> The application server sees the <strong>ALB's private IP</strong>, not the client's IP. To get the client's real IP, read the <strong>X-Forwarded-For</strong> header.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 6: Target Groups -->
+<div class="slide" data-slide="5">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Target Groups</div>
+    <h2 class="anim d2">Where Does Traffic Go?</h2>
+    <div class="card anim d3" style="margin-bottom: 20px;">
+      <h3 style="color: var(--accent-green); font-size: 18px;">A Target Group is a collection of targets that receive traffic from the Load Balancer</h3>
+      <p style="font-size: 15px; margin-top: 8px;">
+        The ELB doesn't send traffic to individual instances — it sends to a <strong style="color: var(--text-primary);">Target Group</strong>. 
+        The Target Group then routes to healthy targets using the configured algorithm.
+      </p>
+    </div>
+    <div class="card-grid-2" style="gap: 16px;">
+      <div class="card anim d4">
+        <div class="card-accent" style="background: var(--accent-cyan);"></div>
+        <h3 style="color: var(--accent-cyan);">Target Types</h3>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+          <div style="padding: 10px 14px; background: rgba(34,211,238,0.06); border-radius: 10px; font-size: 13px;">
+            <strong style="color: var(--accent-cyan);">EC2 Instances</strong> <span style="color: var(--text-muted);">— most common, managed by ASG</span>
+          </div>
+          <div style="padding: 10px 14px; background: rgba(52,211,153,0.06); border-radius: 10px; font-size: 13px;">
+            <strong style="color: var(--accent-green);">IP Addresses</strong> <span style="color: var(--text-muted);">— must be private IPs, for on-premise servers</span>
+          </div>
+          <div style="padding: 10px 14px; background: rgba(167,139,250,0.06); border-radius: 10px; font-size: 13px;">
+            <strong style="color: var(--accent-violet);">Lambda Functions</strong> <span style="color: var(--text-muted);">— ALB converts HTTP to JSON event</span>
+          </div>
+          <div style="padding: 10px 14px; background: rgba(245,158,11,0.06); border-radius: 10px; font-size: 13px;">
+            <strong style="color: var(--accent-amber);">Another ALB</strong> <span style="color: var(--text-muted);">— chain load balancers (NLB → ALB)</span>
+          </div>
+        </div>
+      </div>
+      <div class="card anim d5">
+        <div class="card-accent" style="background: var(--accent-amber);"></div>
+        <h3 style="color: var(--accent-amber);">Health Check Settings</h3>
+        <p style="margin-bottom: 12px;">Each Target Group has its own health check configuration:</p>
+        <div class="code-block" style="padding: 14px 16px; font-size: 12px;">
+<pre><span class="c-key">Protocol:</span>     <span class="c-str">HTTP</span>
+<span class="c-key">Path:</span>         <span class="c-str">/health</span>
+<span class="c-key">Port:</span>         <span class="c-val">80</span>
+<span class="c-key">Healthy:</span>      <span class="c-str">5 consecutive passes</span>
+<span class="c-key">Unhealthy:</span>    <span class="c-str">2 consecutive fails</span>
+<span class="c-key">Interval:</span>     <span class="c-val">30 seconds</span></pre>
+        </div>
+      </div>
+    </div>
+    <div class="highlight-box anim d6" style="border-color: var(--accent-green); background: rgba(52,211,153,0.04); margin-top: 16px;">
+      <strong>Key Concept:</strong> ELB routes to Target Groups. Target Groups route to targets. One ALB can have <strong>multiple Target Groups</strong> based on different rules (path, hostname, etc.).
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 7: What is ASG -->
+<div class="slide" data-slide="6">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Auto Scaling</div>
+    <h2 class="anim d2">Auto Scaling Groups (ASG)</h2>
+    <div class="card-grid-2">
+      <div class="card anim d3" style="grid-column: 1 / -1;">
+        <h3 style="color: var(--accent-amber); font-size: 20px;">Scale Your Servers Automatically</h3>
+        <p style="font-size: 16px; margin-top: 8px;">
+          ASG automatically <strong style="color: var(--text-primary);">adds or removes EC2 instances</strong> based on demand. 
+          High traffic? More servers. Low traffic? Fewer servers. You pay only for what you use.
+        </p>
+      </div>
+      <div class="card anim d4">
+        <div class="card-accent" style="background: var(--accent-amber);"></div>
+        <h3 style="color: var(--accent-amber);">ASG Configuration</h3>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+          <div style="padding: 10px 14px; background: rgba(245,158,11,0.06); border-radius: 10px; font-size: 13px;">
+            <strong style="color: var(--accent-amber);">Minimum</strong> <span style="color: var(--text-muted);">— never go below this (e.g. 2)</span>
+          </div>
+          <div style="padding: 10px 14px; background: rgba(52,211,153,0.06); border-radius: 10px; font-size: 13px;">
+            <strong style="color: var(--accent-green);">Desired</strong> <span style="color: var(--text-muted);">— what you want running normally (e.g. 3)</span>
+          </div>
+          <div style="padding: 10px 14px; background: rgba(251,113,133,0.06); border-radius: 10px; font-size: 13px;">
+            <strong style="color: var(--accent-rose);">Maximum</strong> <span style="color: var(--text-muted);">— never go above this (e.g. 6)</span>
+          </div>
+        </div>
+        <div class="highlight-box" style="border-color: var(--accent-amber); background: rgba(245,158,11,0.04); font-size: 12px;">
+          ASG works with ELB — new instances are automatically registered in the Target Group.
+        </div>
+      </div>
+      <div class="card anim d5">
+        <div class="card-accent" style="background: var(--accent-cyan);"></div>
+        <h3 style="color: var(--accent-cyan);">Launch Template</h3>
+        <p style="margin-bottom: 10px;">ASG needs to know <strong style="color: var(--text-primary);">how</strong> to create new instances. The Launch Template defines:</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="padding: 8px 14px; background: rgba(34,211,238,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">AMI — which image to use</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(34,211,238,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Instance Type — t2.micro, m5.large, etc.</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(34,211,238,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Security Groups, Key Pair, IAM Role</span>
+          </div>
+          <div style="padding: 8px 14px; background: rgba(34,211,238,0.06); border-radius: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">User Data — startup script</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 8: Scaling Policies -->
+<div class="slide" data-slide="7">
+  <div class="slide-content">
+    <div class="slide-label anim d1">Scaling Policies</div>
+    <h2 class="anim d2">How Does ASG Decide to Scale?</h2>
+    <div class="card-grid-2" style="gap: 16px;">
+      <div class="card anim d3">
+        <div class="card-accent" style="background: var(--accent-green);"></div>
+        <h3 style="color: var(--accent-green);">Target Tracking</h3>
+        <p style="margin-bottom: 10px;">The simplest and most common. You set a target, ASG maintains it automatically.</p>
+        <div class="code-block" style="padding: 14px 16px; font-size: 12px;">
+<pre><span class="c-comment"># Example:</span>
+<span class="c-str">"Keep average CPU at 40%"</span>
+
+<span class="c-comment"># CPU goes to 70%?</span>
+<span class="c-val">→ ASG adds instances</span>
+
+<span class="c-comment"># CPU drops to 20%?</span>
+<span class="c-val">→ ASG removes instances</span></pre>
+        </div>
+        <div class="highlight-box" style="border-color: var(--accent-green); background: rgba(52,211,153,0.04); font-size: 12px;">
+          <strong>Most used.</strong> Like setting AC to 22 degrees — it adjusts automatically.
+        </div>
+      </div>
+      <div class="card anim d4">
+        <div class="card-accent" style="background: var(--accent-cyan);"></div>
+        <h3 style="color: var(--accent-cyan);">Step / Simple Scaling</h3>
+        <p style="margin-bottom: 10px;">You define rules based on CloudWatch alarms. More control but more setup.</p>
+        <div class="code-block" style="padding: 14px 16px; font-size: 12px;">
+<pre><span class="c-comment"># Step Scaling rules:</span>
+<span class="c-str">CPU > 70%</span> <span class="c-val">→ add 2 instances</span>
+<span class="c-str">CPU > 90%</span> <span class="c-val">→ add 4 instances</span>
+<span class="c-str">CPU < 30%</span> <span class="c-val">→ remove 1 instance</span></pre>
+        </div>
+        <div class="highlight-box" style="border-color: var(--accent-cyan); background: rgba(34,211,238,0.04); font-size: 12px;">
+          <strong>Step</strong> scales in steps based on alarm severity. <strong>Simple</strong> waits for cooldown between actions.
+        </div>
+      </div>
+      <div class="card anim d5">
+        <div class="card-accent" style="background: var(--accent-amber);"></div>
+        <h3 style="color: var(--accent-amber);">Scheduled Scaling</h3>
+        <p>Scale based on known patterns. You know traffic spikes at 9 AM every day? Schedule more instances before that.</p>
+        <div class="code-block" style="margin-top: 12px; padding: 14px 16px; font-size: 12px;">
+<pre><span class="c-str">"Every weekday at 8:30 AM"</span>
+<span class="c-val">→ set min capacity to 5</span>
+
+<span class="c-str">"Every Friday at 6 PM"</span>
+<span class="c-val">→ set min capacity to 2</span></pre>
+        </div>
+      </div>
+      <div class="card anim d6">
+        <div class="card-accent" style="background: var(--accent-violet);"></div>
+        <h3 style="color: var(--accent-violet);">Predictive Scaling</h3>
+        <p>Uses machine learning to analyze historical traffic and <strong style="color: var(--text-primary);">predict future demand</strong>. Provisions instances ahead of time.</p>
+        <div class="highlight-box" style="border-color: var(--accent-violet); background: rgba(167,139,250,0.04); margin-top: 12px; font-size: 12px;">
+          <strong>Best for:</strong> Cyclical patterns that repeat daily or weekly. AWS learns and pre-scales.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 9: ASG + ELB Together -->
+<div class="slide" data-slide="8">
+  <div class="slide-content">
+    <div class="slide-label anim d1">The Full Picture</div>
+    <h2 class="anim d2">ELB + ASG Working Together</h2>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 24px; margin-top: 20px;" class="anim d3">
+      <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
+        <div class="diagram-box" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 12px 18px; font-size: 13px;">Users</div>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="diagram-box" style="background: rgba(52,211,153,0.08); border: 2px solid var(--accent-green); color: var(--accent-green); padding: 20px 28px;">
+        ELB
+        <div class="box-desc">Distributes traffic</div>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div style="border: 2px dashed var(--accent-amber); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent-amber); margin-bottom: 4px;">Auto Scaling Group</div>
+        <div style="display: flex; gap: 10px;">
+          <div class="diagram-box" style="background: rgba(34,211,238,0.08); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); padding: 10px 16px; font-size: 12px;">EC2</div>
+          <div class="diagram-box" style="background: rgba(34,211,238,0.08); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); padding: 10px 16px; font-size: 12px;">EC2</div>
+          <div class="diagram-box" style="background: rgba(34,211,238,0.08); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); padding: 10px 16px; font-size: 12px;">EC2</div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <div class="diagram-box" style="background: rgba(34,211,238,0.04); border: 1px dashed rgba(34,211,238,0.3); color: rgba(34,211,238,0.4); padding: 10px 16px; font-size: 12px;">+EC2</div>
+          <div class="diagram-box" style="background: rgba(34,211,238,0.04); border: 1px dashed rgba(34,211,238,0.3); color: rgba(34,211,238,0.4); padding: 10px 16px; font-size: 12px;">+EC2</div>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">min: 2 | desired: 3 | max: 5</div>
+      </div>
+    </div>
+    <div class="card-grid-2 anim d5" style="gap: 16px; margin-top: 28px;">
+      <div class="highlight-box" style="border-color: var(--accent-green); background: rgba(52,211,153,0.04);">
+        <strong>ELB's job:</strong> Distribute traffic evenly. Health check instances. Stop sending to unhealthy ones.
+      </div>
+      <div class="highlight-box" style="border-color: var(--accent-amber); background: rgba(245,158,11,0.04);">
+        <strong>ASG's job:</strong> Add/remove instances based on demand. Register new ones with ELB automatically.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 10: Exam Tips -->
+<div class="slide" data-slide="9">
+  <div class="slide-content" style="text-align: center;">
+    <div class="slide-label anim d1">Key Takeaways</div>
+    <h2 class="anim d2" style="font-size: 48px;">
+      Remember These for the<br>
+      <span style="color: var(--accent-green);">Exam</span>
+    </h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 900px; margin: 28px auto 0; text-align: left;">
+      <div class="card anim d3">
+        <h3 style="color: var(--accent-green); font-size: 15px;">ALB = Layer 7 (HTTP)</h3>
+        <p style="font-size: 13px;">Routes by URL, hostname, query string. Best for web apps and microservices. Gets a DNS name, not a static IP.</p>
+      </div>
+      <div class="card anim d3">
+        <h3 style="color: var(--accent-cyan); font-size: 15px;">NLB = Layer 4 (TCP)</h3>
+        <p style="font-size: 13px;">Ultra-fast, static IP per AZ. Use when you need extreme performance or a fixed IP address.</p>
+      </div>
+      <div class="card anim d4">
+        <h3 style="color: var(--accent-amber); font-size: 15px;">X-Forwarded-For</h3>
+        <p style="font-size: 13px;">ALB replaces client IP with its own. Read X-Forwarded-For header to get the real client IP.</p>
+      </div>
+      <div class="card anim d4">
+        <h3 style="color: var(--accent-violet); font-size: 15px;">ASG + ELB = Best Friends</h3>
+        <p style="font-size: 13px;">ASG automatically registers/deregisters instances with the ELB Target Group.</p>
+      </div>
+      <div class="card anim d5">
+        <h3 style="color: var(--accent-rose); font-size: 15px;">Target Tracking = Simplest</h3>
+        <p style="font-size: 13px;">"Keep CPU at 40%" — ASG handles the rest. Most recommended scaling policy.</p>
+      </div>
+      <div class="card anim d5">
+        <h3 style="color: var(--accent-orange); font-size: 15px;">Health Check Failure</h3>
+        <p style="font-size: 13px;">ELB marks instance unhealthy → stops traffic. ASG can terminate it and launch a replacement.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Navigation -->
+<div class="nav-bar">
+  <button class="nav-btn" id="prevBtn">&#8249;</button>
+  <div class="nav-dots" id="navDots"></div>
+  <span class="slide-counter" id="slideCounter">1 / 10</span>
+  <button class="nav-btn" id="nextBtn">&#8250;</button>
+</div>
+
+<script>
+const pc = document.getElementById('particles');
+const colors = ['#30043f', '#0c2643', '#34d399', '#f59e0b', '#22d3ee'];
+for (let i = 0; i < 18; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.left = Math.random() * 100 + '%';
+  p.style.background = colors[Math.floor(Math.random() * colors.length)];
+  p.style.animationDuration = (18 + Math.random() * 28) + 's';
+  p.style.animationDelay = (Math.random() * 20) + 's';
+  p.style.opacity = 0.25 + Math.random() * 0.35;
+  const size = (2 + Math.random() * 4) + 'px';
+  p.style.width = size;
+  p.style.height = size;
+  pc.appendChild(p);
+}
+
+const slides = document.querySelectorAll('.slide');
+const navDots = document.getElementById('navDots');
+const slideCounter = document.getElementById('slideCounter');
+let current = 0;
+
+slides.forEach((_, i) => {
+  const dot = document.createElement('div');
+  dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+  dot.addEventListener('click', () => goTo(i));
+  navDots.appendChild(dot);
+});
+
+function goTo(index) {
+  if (index < 0 || index >= slides.length) return;
+  slides[current].classList.remove('active');
+  navDots.children[current].classList.remove('active');
+  current = index;
+  slides[current].classList.add('active');
+  navDots.children[current].classList.add('active');
+  slideCounter.textContent = `${current + 1} / ${slides.length}`;
+}
+
+document.getElementById('prevBtn').addEventListener('click', () => goTo(current - 1));
+document.getElementById('nextBtn').addEventListener('click', () => goTo(current + 1));
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+});
+
+let touchStart = 0;
+document.addEventListener('touchstart', (e) => touchStart = e.touches[0].clientX);
+document.addEventListener('touchend', (e) => {
+  const diff = touchStart - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 50) diff > 0 ? goTo(current + 1) : goTo(current - 1);
+});
+</script>
+</body>
+</html>
